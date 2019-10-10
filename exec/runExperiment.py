@@ -19,12 +19,12 @@ from src.experiment import Experiment
 def main():
     gridSize = 60
     bounds = [0, 0, gridSize - 1, gridSize - 1]
-    minDistanceBetweenGrids = 10
+    minDistanceForReborn = 20
     condition = [-5, -3, -1, 0, 1, 3, 5]
     counter = [0] * len(condition)
     numPlayers = 4
     initialWorld = InitialWorld(bounds, numPlayers)
-    updateWorld = UpdateWorld(bounds, condition, counter)
+    updateWorld = UpdateWorld(bounds, condition, counter, minDistanceForReborn)
 
     pg.init()
     screenWidth = 800
@@ -34,18 +34,18 @@ def main():
     lineWidth = 1
     backgroundColor = THECOLORS['grey']  # [205, 255, 204]
     lineColor = [0, 0, 0]
-    targetColor = THECOLORS['green']  # [255, 50, 50]
+    targetColor = THECOLORS['yellow']  # [255, 50, 50]
     playerColors = [THECOLORS['blue'], THECOLORS['red']]
     targetRadius = 10
     playerRadius = 10
     stopwatchUnit = 100
-    finishTime = 1000 * 60 * 10
+    finishTime = 1000 * 60 * 1
     block = 1
     softmaxBeita = -1
     textColorTuple = THECOLORS['green']
     stopwatchEvent = pg.USEREVENT + 1
 
-    saveImage = True
+    saveImage = False
 
     pg.time.set_timer(stopwatchEvent, stopwatchUnit)
     pg.event.set_allowed([pg.KEYDOWN, pg.QUIT, stopwatchEvent])
@@ -53,8 +53,8 @@ def main():
     picturePath = os.path.abspath(os.path.join(os.getcwd(), os.pardir)) + '/pictures/'
     resultsPath = os.path.abspath(os.path.join(os.getcwd(), os.pardir)) + '/results/'
     experimentValues = co.OrderedDict()
-    # experimentValues["name"] = input("Please enter your name:").capitalize()
-    experimentValues["name"] = 'test'
+    experimentValues["name"] = input("Please enter your name:").capitalize()
+    # experimentValues["name"] = 'test'
     experimentValues["condition"] = 'None'
     writerPath = resultsPath + experimentValues["name"] + '.csv'
     writer = WriteDataFrameToCSV(writerPath)
@@ -78,10 +78,10 @@ def main():
     # policy = pickle.load(open("SingleWolfTwoSheepsGrid15.pkl","rb"))
     # modelController = ModelController(policy, gridSize, stopwatchEvent, stopwatchUnit, drawNewState, finishTime, softmaxBeita)
 
-    killzone = 4
+    killzone = 3
     actionSpace = list(it.product([0, 1, -1], repeat=2))
     trial = Trial(humanController, actionSpace, killzone, drawNewState, stopwatchEvent, finishTime)
-    experiment = Experiment(trial, writer, experimentValues, initialWorld, updateWorld, drawImage, resultsPath, minDistanceBetweenGrids)
+    experiment = Experiment(trial, writer, experimentValues, initialWorld, updateWorld, drawImage, resultsPath, minDistanceForReborn)
     giveExperimentFeedback = GiveExperimentFeedback(screen, textColorTuple, screenWidth, screenHeight)
 
     # drawImage(introductionImage)

@@ -35,15 +35,22 @@ class InitialWorld():
         target1Grid = samplePosition(self.bounds)
         target2Grid = samplePosition(self.bounds)
 
+        while np.any(np.array([np.linalg.norm(np.array(humanGrid) - np.array(target1Grid)) for humanGrid in initPlayerGrids]) < minDistance):
+            target1Grid = samplePosition(self.bounds)
+
+        while np.any(np.array([np.linalg.norm(np.array(humanGrid) - np.array(target2Grid)) for humanGrid in initPlayerGrids]) < minDistance):
+            target2Grid = samplePosition(self.bounds)
+
         return target1Grid, target2Grid, initPlayerGrids
 
 
 class UpdateWorld():
-    def __init__(self, bounds, conditon, counter):
+    def __init__(self, bounds, conditon, counter, minDistanceForReborn):
         self.condition = conditon
         self.bounds = bounds
         self.counter = counter
         self.correctionFactors = 0.0001
+        self.minDistanceForReborn = minDistanceForReborn
 
     def __call__(self, oldTargetGrid, playerGrid):
         counter = copy.deepcopy(self.counter)
@@ -54,6 +61,10 @@ class UpdateWorld():
         nextCondition = np.random.choice(condition, 1, p=list(normalizeSampleProbability))[0]
 
         newTargetGrid = samplePosition(self.bounds)
+
+        while np.any(np.array([np.linalg.norm(np.array(humanGrid) - np.array(newTargetGrid)) for humanGrid in playerGrid]) < self.minDistanceForReborn):
+            newTargetGrid = samplePosition(self.bounds)
+
         return newTargetGrid, nextCondition
 
 

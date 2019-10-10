@@ -1,9 +1,10 @@
 import numpy as np
 import pygame as pg
+from pygame.color import THECOLORS
 from pygame import time
 import collections as co
 import pickle
-from src.visualization import DrawBackground, DrawNewState, DrawImage
+from src.visualization import DrawBackground, DrawNewState, DrawImage, drawText
 from src.controller import HumanController, ModelController
 from src.updateWorld import InitialWorld
 import random
@@ -41,14 +42,14 @@ class Trial():
         results = co.OrderedDict()
         pg.event.set_allowed([pg.KEYDOWN, pg.KEYUP, pg.QUIT, self.stopwatchEvent])
 
-        bean1Grid, bean2Grid, playerGrid, action, currentStopwatch = self.humanController(bean1Grid, bean2Grid, playerGrid, score, currentStopwatch)
+        bean1Grid, bean2Grid, playerGrid, action, currentStopwatch, screen = self.humanController(bean1Grid, bean2Grid, playerGrid, score, currentStopwatch)
 
         eatenFlag = self.checkEaten(bean1Grid, bean2Grid, playerGrid)
         firstResponseTime = time.get_ticks() - initialTime
         score = np.add(score, np.sum(eatenFlag))
         pause = self.checkTerminationOfTrial(action, eatenFlag, currentStopwatch)
         while pause:
-            bean1Grid, bean2Grid, playerGrid, action, currentStopwatch = self.humanController(bean1Grid, bean2Grid, playerGrid, score, currentStopwatch)
+            bean1Grid, bean2Grid, playerGrid, action, currentStopwatch, screen = self.humanController(bean1Grid, bean2Grid, playerGrid, score, currentStopwatch)
             eatenFlag = self.checkEaten(bean1Grid, bean2Grid, playerGrid)
             score = np.add(score, np.sum(eatenFlag))
             pause = self.checkTerminationOfTrial(action, eatenFlag, currentStopwatch)
@@ -67,14 +68,16 @@ class Trial():
         if True in eatenFlag:
             results["beanEaten"] = eatenFlag.index(True) + 1
             oldGrid = eval('bean' + str(eatenFlag.index(False) + 1) + 'Grid')
-            print(bean1Grid, bean2Grid, playerGrid)
-            pg.time.wait(2000)
+
+            drawText(screen, 'caught!', THECOLORS['red'], (screen.get_width() / 2, screen.get_height() / 2))
+            pg.display.update()
+            pg.time.wait(3000)
         else:
             results["beanEaten"] = 0
             oldGrid = None
         results["firstResponseTime"] = firstResponseTime
         results["trialTime"] = wholeResponseTime
-        return results, oldGrid, playerGrid, score, currentStopwatch
+        return results, oldGrid, playerGrid, score, currentStopwatch, eatenFlag
 
 
 def main():

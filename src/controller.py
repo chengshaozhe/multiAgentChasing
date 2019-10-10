@@ -63,13 +63,12 @@ class HumanController():
 
                 for i in range(numAxes):
                     # axis = joystick.get_axis(i)
-                    if (joystick.get_axis(i) < -0.5 or joystick.get_axis(i) > 0.5):
+                    if abs(joystick.get_axis(i)) > 0.5:
                         sign = joystick.get_axis(i) / abs(joystick.get_axis(i))
                         axis = sign * math.log(9 * abs(joystick.get_axis(i)) + 1) / 2.303
                     else:
                         axis = joystick.get_axis(i)
                     actionList.append(axis)
-
             pause = False
 
             joystickSpaceSize = joystickCount * numAxes
@@ -89,10 +88,9 @@ class HumanController():
             targetPositionB = self.stayInBoundary(np.add(targetPositionB, action4))
 
             remainningTime = max(0, self.finishTime - newStopwatch)
-            self.drawNewState(targetPositionA, targetPositionB, playerPositions, remainningTime, currentScore)
+            screen = self.drawNewState(targetPositionA, targetPositionB, playerPositions, remainningTime, currentScore)
             pg.display.update()
-            print(playerPositions)
-        return targetPositionA, targetPositionB, playerPositions, action, newStopwatch
+        return targetPositionA, targetPositionB, playerPositions, action, newStopwatch, screen
 
 
 def calculateSoftmaxProbability(probabilityList, beita):
