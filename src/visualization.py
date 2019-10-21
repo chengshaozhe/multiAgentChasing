@@ -4,6 +4,34 @@ import os
 from pygame.color import THECOLORS
 
 
+def calculateIncludedAngle(vector1, vector2):
+    includedAngle = abs(np.angle(complex(vector1[0], vector1[1]) / complex(vector2[0], vector2[1])))
+    return includedAngle
+
+
+def findQuadrant(vector):
+    quadrant = 0
+    if vector[0] > 0 and vector[1] > 0:
+        quadrant = 0
+
+
+class InitializeScreen:
+    def __init__(self, screenWidth, screenHeight, fullScreen):
+        self.screenWidth = screenWidth
+        self.screenHeight = screenHeight
+        self.fullScreen = fullScreen
+
+    def __call__(self):
+        pg.init()
+        if self.fullScreen:
+            screen = pg.display.set_mode((self.screenWidth, self.screenHeight), pg.FULLSCREEN)
+        else:
+            screen = pg.display.set_mode((self.screenWidth, self.screenHeight))
+        pg.display.init()
+        pg.fastevent.init()
+        return screen
+
+
 def drawText(screen, text, textColorTuple, textPositionTuple):
     font = pg.font.Font(None, 50)
     textObj = font.render(text, 1, textColorTuple)
@@ -63,9 +91,9 @@ class DrawNewState():
 
     def __call__(self, targetPositionA, targetPositionB, playerPositions, currentTime, currentScore):
         self.drawBackground(currentTime, currentScore)
-        pg.draw.circle(self.screen, self.targetColor, [np.int((targetPositionA[0] + self.leaveEdgeSpace + 0.5) * self.widthLineStepSpace), np.int((targetPositionA[1] + self.leaveEdgeSpace + 0.5) * self.heightLineStepSpace)], self.targetRadius)
+        pg.draw.circle(self.screen, self.targetColor[0], [np.int((targetPositionA[0] + self.leaveEdgeSpace + 0.5) * self.widthLineStepSpace), np.int((targetPositionA[1] + self.leaveEdgeSpace + 0.5) * self.heightLineStepSpace)], self.targetRadius)
 
-        pg.draw.circle(self.screen, (0, 168, 107), [np.int((targetPositionB[0] + self.leaveEdgeSpace + 0.5) * self.widthLineStepSpace), np.int((targetPositionB[1] + self.leaveEdgeSpace + 0.5) * self.heightLineStepSpace)], self.targetRadius)
+        pg.draw.circle(self.screen, self.targetColor[1], [np.int((targetPositionB[0] + self.leaveEdgeSpace + 0.5) * self.widthLineStepSpace), np.int((targetPositionB[1] + self.leaveEdgeSpace + 0.5) * self.heightLineStepSpace)], self.targetRadius)
 
         for playerPosition, playerColor in zip(playerPositions, self.playerColors):
             pg.draw.circle(self.screen, playerColor, [np.int((playerPosition[0] + self.leaveEdgeSpace + 0.5) * self.widthLineStepSpace), np.int((playerPosition[1] + self.leaveEdgeSpace + 0.5) * self.heightLineStepSpace)], self.playerRadius)

@@ -36,48 +36,49 @@ class Trial():
                 pause = True
         return pause
 
-    def __call__(self, bean1Grid, bean2Grid, playerGrid, score, currentStopwatch):
+    def __call__(self, bean1Grid, bean2Grid, playerGrid, score, currentStopwatch, trialIndex):
         initialPlayerGrid = playerGrid
         initialTime = time.get_ticks()
-        results = co.OrderedDict()
         pg.event.set_allowed([pg.KEYDOWN, pg.KEYUP, pg.QUIT, self.stopwatchEvent])
 
-        bean1Grid, bean2Grid, playerGrid, action, currentStopwatch, screen = self.humanController(bean1Grid, bean2Grid, playerGrid, score, currentStopwatch)
+        bean1Grid, bean2Grid, playerGrid, action, currentStopwatch, screen = self.humanController(bean1Grid, bean2Grid, playerGrid, score, currentStopwatch, trialIndex)
 
         eatenFlag = self.checkEaten(bean1Grid, bean2Grid, playerGrid)
         firstResponseTime = time.get_ticks() - initialTime
         score = np.add(score, np.sum(eatenFlag))
         pause = self.checkTerminationOfTrial(action, eatenFlag, currentStopwatch)
         while pause:
-            bean1Grid, bean2Grid, playerGrid, action, currentStopwatch, screen = self.humanController(bean1Grid, bean2Grid, playerGrid, score, currentStopwatch)
+            bean1Grid, bean2Grid, playerGrid, action, currentStopwatch, screen = self.humanController(bean1Grid, bean2Grid, playerGrid, score, currentStopwatch, trialIndex)
             eatenFlag = self.checkEaten(bean1Grid, bean2Grid, playerGrid)
             score = np.add(score, np.sum(eatenFlag))
             pause = self.checkTerminationOfTrial(action, eatenFlag, currentStopwatch)
         wholeResponseTime = time.get_ticks() - initialTime
         pg.event.set_blocked([pg.KEYDOWN, pg.KEYUP])
 
-        results["bean1GridX"] = bean1Grid[0]
-        results["bean1GridY"] = bean1Grid[1]
-        results["bean2GridX"] = bean2Grid[0]
-        results["bean2GridY"] = bean2Grid[1]
-        results["player1GridX"] = initialPlayerGrid[0][0]
-        results["player1GridY"] = initialPlayerGrid[0][1]
-        results["player2GridX"] = initialPlayerGrid[1][0]
-        results["player2GridY"] = initialPlayerGrid[1][1]
+        results = co.OrderedDict()
+
+        # results["bean1GridX"] = bean1Grid[0]
+        # results["bean1GridY"] = bean1Grid[1]
+        # results["bean2GridX"] = bean2Grid[0]
+        # results["bean2GridY"] = bean2Grid[1]
+        # results["player1GridX"] = initialPlayerGrid[0][0]
+        # results["player1GridY"] = initialPlayerGrid[0][1]
+        # results["player2GridX"] = initialPlayerGrid[1][0]
+        # results["player2GridY"] = initialPlayerGrid[1][1]
 
         if True in eatenFlag:
             results["beanEaten"] = eatenFlag.index(True) + 1
             oldGrid = eval('bean' + str(eatenFlag.index(False) + 1) + 'Grid')
-
-            drawText(screen, 'caught!', THECOLORS['red'], (screen.get_width() / 2, screen.get_height() / 2))
-            pg.display.update()
-            pg.time.wait(3000)
+            # drawText(screen, 'caught!', THECOLORS['red'], (screen.get_width() / 2, screen.get_height() / 2))
+            # pg.display.update()
+            # pg.time.wait(2000)
         else:
             results["beanEaten"] = 0
             oldGrid = None
-        results["firstResponseTime"] = firstResponseTime
+        # results["firstResponseTime"] = firstResponseTime
         results["trialTime"] = wholeResponseTime
-        return results, oldGrid, playerGrid, score, currentStopwatch, eatenFlag
+
+        return results, [bean1Grid, bean2Grid], playerGrid, score, currentStopwatch, eatenFlag
 
 
 def main():

@@ -26,19 +26,20 @@ def samplePosition(bounds):
 
 
 class InitialWorld():
-    def __init__(self, bounds, numPlayers):
+    def __init__(self, bounds, numPlayers, minDistance):
         self.bounds = bounds
         self.numPlayers = numPlayers
+        self.minDistance = minDistance
 
-    def __call__(self, minDistance):
+    def __call__(self):
         initPlayerGrids = [samplePosition(self.bounds) for i in range(self.numPlayers)]
         target1Grid = samplePosition(self.bounds)
         target2Grid = samplePosition(self.bounds)
 
-        while np.any(np.array([np.linalg.norm(np.array(humanGrid) - np.array(target1Grid)) for humanGrid in initPlayerGrids]) < minDistance):
+        while np.all(np.array([np.linalg.norm(np.array(humanGrid) - np.array(target1Grid)) for humanGrid in initPlayerGrids]) < self.minDistance):
             target1Grid = samplePosition(self.bounds)
 
-        while np.any(np.array([np.linalg.norm(np.array(humanGrid) - np.array(target2Grid)) for humanGrid in initPlayerGrids]) < minDistance):
+        while np.all(np.array([np.linalg.norm(np.array(humanGrid) - np.array(target2Grid)) for humanGrid in initPlayerGrids]) < self.minDistance):
             target2Grid = samplePosition(self.bounds)
 
         return target1Grid, target2Grid, initPlayerGrids
@@ -52,20 +53,31 @@ class UpdateWorld():
         self.correctionFactors = 0.0001
         self.minDistanceForReborn = minDistanceForReborn
 
-    def __call__(self, oldTargetGrid, playerGrid):
-        counter = copy.deepcopy(self.counter)
-        condition = copy.deepcopy(self.condition)
-        counterCorrection = [c + self.correctionFactors if c == 0 else c for c in counter]
-        sampleProbability = 1 / np.array(counterCorrection)
-        normalizeSampleProbability = sampleProbability / np.sum(sampleProbability)
-        nextCondition = np.random.choice(condition, 1, p=list(normalizeSampleProbability))[0]
+    def __call__(self, targetGrid, playerGrid, eatenFlag):
+        # counter = copy.deepcopy(self.counter)
+        # condition = copy.deepcopy(self.condition)
+        # counterCorrection = [c + self.correctionFactors if c == 0 else c for c in counter]
+        # sampleProbability = 1 / np.array(counterCorrection)
+        # normalizeSampleProbability = sampleProbability / np.sum(sampleProbability)
+        # nextCondition = np.random.choice(condition, 1, p=list(normalizeSampleProbability))[0]
 
+        bean1Grid, bean2Grid = targetGrid
         newTargetGrid = samplePosition(self.bounds)
-
         while np.any(np.array([np.linalg.norm(np.array(humanGrid) - np.array(newTargetGrid)) for humanGrid in playerGrid]) < self.minDistanceForReborn):
             newTargetGrid = samplePosition(self.bounds)
+        if eatenFlag.index(True) == 0:
+            bean1Grid = newTargetGrid
+        elif eatenFlag.index(True) == 1:
+            bean2Grid = newTargetGrid
+        else:
+            bean1Grid, bean2Grid = targetGrid
 
-        return newTargetGrid, nextCondition
+        # #
+        # if eatenFlag.index(True) == 0:
+        #     bean1Grid = newTargetGrid
+        # elif eatenFlag.index(True) == 1:
+        #     bean2Grid = newTargetGrid
+        return [bean1Grid, bean2Grid]
 
 
 class StayInBoundary:

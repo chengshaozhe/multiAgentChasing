@@ -8,25 +8,30 @@ import collections as co
 
 
 class HumanController():
-    def __init__(self, writer, gridSize, stopwatchEvent, stopwatchUnit, drawNewState, finishTime, stayInBoundary, saveImage, saveImageDir):
+    def __init__(self, writer, gridSize, stopwatchEvent, stopwatchUnit, wolfSpeedRatio, drawNewState, finishTime, stayInBoundary, saveImage, saveImageDir, sheepPolicy, chooseGreedyAction):
         self.writer = writer
         self.gridSize = gridSize
         self.stopwatchEvent = stopwatchEvent
         self.stopwatchUnit = stopwatchUnit
         self.stopwatch = 0
+        self.wolfSpeedRatio = wolfSpeedRatio
         self.finishTime = finishTime
         self.drawNewState = drawNewState
         self.stayInBoundary = stayInBoundary
         self.saveImage = saveImage
         self.saveImageDir = saveImageDir
+        self.sheepPolicy = sheepPolicy
+        self.chooseGreedyAction = chooseGreedyAction
 
-    def __call__(self, targetPositionA, targetPositionB, playerPositions, currentScore, currentStopwatch):
+    def __call__(self, targetPositionA, targetPositionB, playerPositions, currentScore, currentStopwatch, trialIndex):
         newStopwatch = currentStopwatch
         remainningTime = max(0, self.finishTime - currentStopwatch)
 
         screen = self.drawNewState(targetPositionA, targetPositionB, playerPositions, remainningTime, currentScore)
 
         results = co.OrderedDict()
+        results["trialIndex"] = trialIndex
+        results["timeStep"] = self.stopwatch
         results["bean1GridX"] = targetPositionA[0]
         results["bean1GridY"] = targetPositionA[1]
         results["bean2GridX"] = targetPositionB[0]
@@ -35,6 +40,8 @@ class HumanController():
         results["player1GridY"] = playerPositions[0][1]
         results["player2GridX"] = playerPositions[1][0]
         results["player2GridY"] = playerPositions[1][1]
+        results["beanEaten"] = 0
+        results["trialTime"] = ''
         self.writer(results, self.stopwatch)
 
         if self.saveImage == True:
@@ -75,14 +82,19 @@ class HumanController():
             actionList = [0 if abs(actionList[i]) < 0.5 else actionList[i] for i in range(joystickSpaceSize)]
             action = [actionList[i:i + 2] for i in range(0, len(actionList), numAxes)]
 
-            wolfSpeed = 0.6
-            action1 = np.array(action[0]) * wolfSpeed
-            action2 = np.array(action[1]) * wolfSpeed
+            action1 = np.array(action[0]) * self.wolfSpeedRatio
+            action2 = np.array(action[1]) * self.wolfSpeedRatio
 
             playerPositions = [self.stayInBoundary(np.add(playerPosition, action)) for playerPosition, action in zip(playerPositions, [action1, action2])]
 
-            action3 = action[2]
-            action4 = action[3]
+            action3 = np.array(self.chooseGreedyAction(self.sheepPolicy((np.array(targetPositionA) * 10, np.array(playerPositions[0]) * 10, np.array(playerPositions[1]) * 10)))) / 8
+
+            # action3 = np.array(self.chooseGreedyAction(self.sheepPolicy((np.array(targetPositionA) * 10, np.array(playerPositions[0]) * 10)))) / 7
+
+            action4 = np.array(self.chooseGreedyAction(self.sheepPolicy((np.array(targetPositionA) * 10, np.array(playerPositions[0]) * 10, np.array(playerPositions[1]) * 10)))) / 8
+
+            # action3 = action[2]
+            # action4 = action[3]
 
             targetPositionA = self.stayInBoundary(np.add(targetPositionA, action3))
             targetPositionB = self.stayInBoundary(np.add(targetPositionB, action4))
