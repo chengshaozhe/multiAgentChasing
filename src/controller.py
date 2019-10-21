@@ -68,6 +68,11 @@ class HumanController():
         pause = True
         while pause:
             for event in pg.event.get():
+                if event.type == pg.QUIT:
+                    pause = True
+                    pg.quit()
+                elif event.type == self.stopwatchEvent:
+                    newStopwatch = newStopwatch + self.stopwatchUnit
                 if event.type == pg.KEYDOWN:
                     if event.key in self.actionDict[0].keys():
                         action1 = self.actionDict[0][event.key]
@@ -75,12 +80,6 @@ class HumanController():
                     elif event.key in self.actionDict[1].keys():
                         action2 = self.actionDict[1][event.key]
                         pause = False
-
-            # action3 = np.array(self.chooseGreedyAction(self.sheepPolicy((np.array(targetPositionA) * 10, np.array(playerPositions[0]) * 10, np.array(playerPositions[1]) * 10)))) / 8
-
-            # action3 = np.array(self.chooseGreedyAction(self.sheepPolicy((np.array(targetPositionA) * 10, np.array(playerPositions[0]) * 10)))) / 7
-
-            # action4 = np.array(self.chooseGreedyAction(self.sheepPolicy((np.array(targetPositionA) * 10, np.array(playerPositions[0]) * 10, np.array(playerPositions[1]) * 10)))) / 8
             targetStates = (tuple(targetPositionA), tuple(targetPositionB))
             policyForCurrentStateDict1 = self.sheepPolicy[targetStates][tuple(playerPosition[0])] 
             policyForCurrentStateDict2 = self.sheepPolicy[targetStates][tuple(playerPosition[0])]    
