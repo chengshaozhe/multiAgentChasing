@@ -35,14 +35,17 @@ class InitialWorld():
         initPlayerGrids = [samplePosition(self.bounds) for i in range(self.numPlayers)]
         target1Grid = samplePosition(self.bounds)
         target2Grid = samplePosition(self.bounds)
-
+        target3Grid = samplePosition(self.bounds)
+        target4Grid = samplePosition(self.bounds)
         while np.all(np.array([np.linalg.norm(np.array(humanGrid) - np.array(target1Grid)) for humanGrid in initPlayerGrids]) < self.minDistance):
             target1Grid = samplePosition(self.bounds)
-
         while np.all(np.array([np.linalg.norm(np.array(humanGrid) - np.array(target2Grid)) for humanGrid in initPlayerGrids]) < self.minDistance):
             target2Grid = samplePosition(self.bounds)
-
-        return target1Grid, target2Grid, initPlayerGrids
+        while np.all(np.array([np.linalg.norm(np.array(humanGrid) - np.array(target3Grid)) for humanGrid in initPlayerGrids]) < self.minDistance):
+            target3Grid = samplePosition(self.bounds)
+        while np.all(np.array([np.linalg.norm(np.array(humanGrid) - np.array(target4Grid)) for humanGrid in initPlayerGrids]) < self.minDistance):
+            target4Grid = samplePosition(self.bounds)            
+        return target1Grid, target2Grid,target3Grid,target4Grid,initPlayerGrids
 
 
 class UpdateWorld():

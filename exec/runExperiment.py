@@ -23,7 +23,7 @@ def main():
     minDistanceForReborn = 30
     condition = [-5, -3, -1, 0, 1, 3, 5]
     counter = [0] * len(condition)
-    numPlayers = 4
+    numPlayers = 2
     initialWorld = InitialWorld(bounds, numPlayers, minDistanceForReborn)
     updateWorld = UpdateWorld(bounds, condition, counter, minDistanceForReborn)
 
