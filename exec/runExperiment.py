@@ -18,7 +18,7 @@ from src.sheepPolicy import GenerateModel, restoreVariables, ApproximatePolicy, 
 
 
 def main():
-    gridSize = 60
+    gridSize = 15
     bounds = [0, 0, gridSize - 1, gridSize - 1]
     minDistanceForReborn = 30
     condition = [-5, -3, -1, 0, 1, 3, 5]
@@ -51,7 +51,7 @@ def main():
 
     saveImage = False
     killzone = 3
-    wolfSpeedRatio = 0.8
+    wolfSpeedRatio = 1
 
     pg.time.set_timer(stopwatchEvent, stopwatchUnit)
     pg.event.set_allowed([pg.KEYDOWN, pg.QUIT, stopwatchEvent])
@@ -79,39 +79,25 @@ def main():
     xBoundary = [bounds[0], bounds[2]]
     yBoundary = [bounds[1], bounds[3]]
     stayInBoundary = StayInBoundary(xBoundary, yBoundary)
-############
-    sheepActionSpace = [(10, 0), (7, 7), (0, 10), (-7, 7), (-10, 0), (-7, -7), (0, -10), (7, -7)]
-    numActionSpace = len(sheepActionSpace)
+#########         
+    sheepActionSpace = [(1, 0), (0, 1),(-1, 0),(0, -1),(0, 0)]
+    #grid policy
+    # sheepPolicySingle =pickle.load(open("SingleWolfTwoSheepsGrid15.pkl","rb"))
 
-    regularizationFactor = 1e-4
-    sharedWidths = [128]
-    actionLayerWidths = [128]
-    valueLayerWidths = [128]
-
-    generateSheepModelSingle = GenerateModel(4, numActionSpace, regularizationFactor)
-    generateSheepModelMulti = GenerateModel(6, numActionSpace, regularizationFactor)
-
-    initSheepNNModelSingle = generateSheepModelSingle(sharedWidths * 4, actionLayerWidths, valueLayerWidths)
-    initSheepNNModelMulti = generateSheepModelMulti(sharedWidths * 4, actionLayerWidths, valueLayerWidths)
-
-    sheepPreTrainModelPathSingle = os.path.join('..', 'trainedModelsSingle', 'agentId=0_depth=4_learningRate=0.0001_maxRunningSteps=60_miniBatchSize=256_numSimulations=100_trainSteps=90000')
-
-    sheepPreTrainModelPathMulti = os.path.join('..', 'trainedModelsMulti', 'agentId=0_depth=4_learningRate=0.0001_maxRunningSteps=60_miniBatchSize=256_numSimulations=100_trainSteps=90000')
-
-    sheepPreTrainModelSingle = restoreVariables(initSheepNNModelSingle, sheepPreTrainModelPathSingle)
-    sheepPreTrainModelMulti = restoreVariables(initSheepNNModelMulti, sheepPreTrainModelPathMulti)
-
-    sheepPolicySingle = ApproximatePolicy(sheepPreTrainModelSingle, sheepActionSpace)
-    sheepPolicyMulti = ApproximatePolicy(sheepPreTrainModelMulti, sheepActionSpace)
+    multiPath=os.path.join(os.path.abspath(os.path.join(os.path.join(os.getcwd(), os.pardir), 'data/policy')))
+    sheepPolicyMulti = pickle.load(open(os.path.join(multiPath,"noise0SheepToTwoWolfGird15_policy.pkl"),"rb"))
 
     sheepPolicy = sheepPolicyMulti
+    # sheepPolicy=lambda a:{[0,0]:1}
+
+
     softMaxBeta = 30
     softmaxAction = SoftmaxAction(softMaxBeta)
     humanController = HumanController(writer, gridSize, stopwatchEvent, stopwatchUnit, wolfSpeedRatio, drawNewState, finishTime, stayInBoundary, saveImage, saveImageDir, sheepPolicy, chooseGreedyAction)
-    # policy = pickle.load(open("SingleWolfTwoSheepsGrid15.pkl","rb"))
     # modelController = ModelController(policy, gridSize, stopwatchEvent, stopwatchUnit, drawNewState, finishTime, softmaxBeita)
 
     actionSpace = list(it.product([0, 1, -1], repeat=2))
+    actionSpace = [(1, 0), (0, 1),(-1, 0),(0, -1),(0, 0)]
     trial = Trial(humanController, actionSpace, killzone, drawNewState, stopwatchEvent, finishTime)
     experiment = Experiment(trial, writer, experimentValues, initialWorld, updateWorld, drawImage, resultsPath)
     giveExperimentFeedback = GiveExperimentFeedback(screen, textColorTuple, screenWidth, screenHeight)

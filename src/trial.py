@@ -19,13 +19,17 @@ class Trial():
         self.stopwatchEvent = stopwatchEvent
         self.finishTime = finishTime
 
-    def checkEaten(self, bean1Grid, bean2Grid, humanGrids):
-        if np.any(np.array([np.linalg.norm(np.array(humanGrid) - np.array(bean1Grid)) for humanGrid in humanGrids]) < self.killzone):
-            eatenFlag = [True, False]
+    def checkEaten(self, sheep1Grid, sheep2Grid,bean1Grid,bean2Grid, humanGrids):
+        if np.any(np.array([np.linalg.norm(np.array(humanGrid) - np.array(sheep1Grid)) for humanGrid in humanGrids]) < self.killzone):
+            eatenFlag = [True, False,False,False]
+        elif np.any(np.array([np.linalg.norm(np.array(humanGrid) - np.array(sheep2Grid)) for humanGrid in humanGrids]) < self.killzone):
+            eatenFlag = [False, True,False,False]
+        elif np.any(np.array([np.linalg.norm(np.array(humanGrid) - np.array(bean1Grid)) for humanGrid in humanGrids]) < self.killzone):
+            eatenFlag = [False,False, True,False]
         elif np.any(np.array([np.linalg.norm(np.array(humanGrid) - np.array(bean2Grid)) for humanGrid in humanGrids]) < self.killzone):
-            eatenFlag = [False, True]
+            eatenFlag = [False,False,False, True]
         else:
-            eatenFlag = [False, False]
+            eatenFlag = [False, False,False,False]
         return eatenFlag
 
     def checkTerminationOfTrial(self, actionList, eatenFlag, currentStopwatch):
@@ -36,19 +40,19 @@ class Trial():
                 pause = True
         return pause
 
-    def __call__(self, bean1Grid, bean2Grid, playerGrid, score, currentStopwatch, trialIndex):
+    def __call__(self, sheep1Grid, sheep2Grid, playerGrid, score, currentStopwatch, trialIndex):
         initialPlayerGrid = playerGrid
         initialTime = time.get_ticks()
         pg.event.set_allowed([pg.KEYDOWN, pg.KEYUP, pg.QUIT, self.stopwatchEvent])
 
-        bean1Grid, bean2Grid, playerGrid, action, currentStopwatch, screen = self.humanController(bean1Grid, bean2Grid, playerGrid, score, currentStopwatch, trialIndex)
+        sheep1Grid, sheep2Grid, playerGrid, action, currentStopwatch, screen = self.humanController(sheep1Grid, sheep2Grid, playerGrid, score, currentStopwatch, trialIndex)
 
-        eatenFlag = self.checkEaten(bean1Grid, bean2Grid, playerGrid)
+        eatenFlag = self.checkEaten( sheep1Grid,sheep2Grid,bean1Grid, bean2Grid, playerGrid)
         firstResponseTime = time.get_ticks() - initialTime
         score = np.add(score, np.sum(eatenFlag))
         pause = self.checkTerminationOfTrial(action, eatenFlag, currentStopwatch)
         while pause:
-            bean1Grid, bean2Grid, playerGrid, action, currentStopwatch, screen = self.humanController(bean1Grid, bean2Grid, playerGrid, score, currentStopwatch, trialIndex)
+            sheep1Grid, sheep2Grid, playerGrid, action, currentStopwatch, screen = self.humanController(sheep1Grid, sheep2Grid, playerGrid, score, currentStopwatch, trialIndex)
             eatenFlag = self.checkEaten(bean1Grid, bean2Grid, playerGrid)
             score = np.add(score, np.sum(eatenFlag))
             pause = self.checkTerminationOfTrial(action, eatenFlag, currentStopwatch)
@@ -78,7 +82,7 @@ class Trial():
         # results["firstResponseTime"] = firstResponseTime
         results["trialTime"] = wholeResponseTime
 
-        return results, [bean1Grid, bean2Grid], playerGrid, score, currentStopwatch, eatenFlag
+        return results, [sheep1Grid, sheep2Grid,bean1Grid, bean2Grid], playerGrid, score, currentStopwatch, eatenFlag
 
 
 def main():

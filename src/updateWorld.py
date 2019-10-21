@@ -61,23 +61,28 @@ class UpdateWorld():
         # normalizeSampleProbability = sampleProbability / np.sum(sampleProbability)
         # nextCondition = np.random.choice(condition, 1, p=list(normalizeSampleProbability))[0]
 
-        bean1Grid, bean2Grid = targetGrid
+        sheep1Grid,sheep2Grid,bean1Grid, bean2Grid = targetGrid
         newTargetGrid = samplePosition(self.bounds)
         while np.any(np.array([np.linalg.norm(np.array(humanGrid) - np.array(newTargetGrid)) for humanGrid in playerGrid]) < self.minDistanceForReborn):
             newTargetGrid = samplePosition(self.bounds)
         if eatenFlag.index(True) == 0:
-            bean1Grid = newTargetGrid
+            sheep1Grid = newTargetGrid
         elif eatenFlag.index(True) == 1:
+            sheep2Grid = newTargetGrid
+        elif eatenFlag.index(True) == 2:
+            bean1Grid = newTargetGrid
+        elif eatenFlag.index(True) == 3:
             bean2Grid = newTargetGrid
+
         else:
-            bean1Grid, bean2Grid = targetGrid
+            sheep1Grid,sheep2Grid,bean1Grid, bean2Grid = targetGrid
 
         # #
         # if eatenFlag.index(True) == 0:
         #     bean1Grid = newTargetGrid
         # elif eatenFlag.index(True) == 1:
         #     bean2Grid = newTargetGrid
-        return [bean1Grid, bean2Grid]
+        return [sheep1Grid,sheep2Grid,bean1Grid, bean2Grid]
 
 
 class StayInBoundary:

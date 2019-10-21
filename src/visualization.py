@@ -89,11 +89,12 @@ class DrawNewState():
         self.widthLineStepSpace = drawBackground.widthLineStepSpace
         self.heightLineStepSpace = drawBackground.heightLineStepSpace
 
-    def __call__(self, targetPositionA, targetPositionB, playerPositions, currentTime, currentScore):
+    def __call__(self, targetPositionA, targetPositionB,targetPositionC,targetPositionD, playerPositions, currentTime, currentScore):
         self.drawBackground(currentTime, currentScore)
         pg.draw.circle(self.screen, self.targetColor[0], [np.int((targetPositionA[0] + self.leaveEdgeSpace + 0.5) * self.widthLineStepSpace), np.int((targetPositionA[1] + self.leaveEdgeSpace + 0.5) * self.heightLineStepSpace)], self.targetRadius)
-
         pg.draw.circle(self.screen, self.targetColor[1], [np.int((targetPositionB[0] + self.leaveEdgeSpace + 0.5) * self.widthLineStepSpace), np.int((targetPositionB[1] + self.leaveEdgeSpace + 0.5) * self.heightLineStepSpace)], self.targetRadius)
+        pg.draw.circle(self.screen, self.targetColor[2], [np.int((targetPositionC[0] + self.leaveEdgeSpace + 0.5) * self.widthLineStepSpace), np.int((targetPositionC[1] + self.leaveEdgeSpace + 0.5) * self.heightLineStepSpace)], self.targetRadius)
+        pg.draw.circle(self.screen, self.targetColor[3], [np.int((targetPositionD[0] + self.leaveEdgeSpace + 0.5) * self.widthLineStepSpace), np.int((targetPositionD[1] + self.leaveEdgeSpace + 0.5) * self.heightLineStepSpace)], self.targetRadius)
 
         for playerPosition, playerColor in zip(playerPositions, self.playerColors):
             pg.draw.circle(self.screen, playerColor, [np.int((playerPosition[0] + self.leaveEdgeSpace + 0.5) * self.widthLineStepSpace), np.int((playerPosition[1] + self.leaveEdgeSpace + 0.5) * self.heightLineStepSpace)], self.playerRadius)

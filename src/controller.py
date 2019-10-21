@@ -23,11 +23,11 @@ class HumanController():
         self.sheepPolicy = sheepPolicy
         self.chooseGreedyAction = chooseGreedyAction
 
-    def __call__(self, targetPositionA, targetPositionB, playerPositions, currentScore, currentStopwatch, trialIndex):
+    def __call__(self, targetPositionA, targetPositionB,targetPositionC,targetPositionD,playerPositions, currentScore, currentStopwatch, trialIndex):
         newStopwatch = currentStopwatch
         remainningTime = max(0, self.finishTime - currentStopwatch)
 
-        screen = self.drawNewState(targetPositionA, targetPositionB, playerPositions, remainningTime, currentScore)
+        screen = self.drawNewState(targetPositionA, targetPositionB,targetPositionC,targetPositionD, playerPositions, remainningTime, currentScore)
 
         results = co.OrderedDict()
         results["trialIndex"] = trialIndex
@@ -36,6 +36,11 @@ class HumanController():
         results["bean1GridY"] = targetPositionA[1]
         results["bean2GridX"] = targetPositionB[0]
         results["bean2GridY"] = targetPositionB[1]
+        results["sheep1GridX"] = targetPositionC[0]
+        results["sheep1GridY"] = targetPositionC[1]
+        results["sheep2GridX"] = targetPositionD[0]
+        results["sheep2GridY"] = targetPositionD[1]
+
         results["player1GridX"] = playerPositions[0][0]
         results["player1GridY"] = playerPositions[0][1]
         results["player2GridX"] = playerPositions[1][0]
@@ -85,16 +90,27 @@ class HumanController():
             action1 = np.array(action[0]) * self.wolfSpeedRatio
             action2 = np.array(action[1]) * self.wolfSpeedRatio
 
-            playerPositions = [self.stayInBoundary(np.add(playerPosition, action)) for playerPosition, action in zip(playerPositions, [action1, action2])]
 
-            action3 = np.array(self.chooseGreedyAction(self.sheepPolicy((np.array(targetPositionA) * 10, np.array(playerPositions[0]) * 10, np.array(playerPositions[1]) * 10)))) / 8
+
+            # action3 = np.array(self.chooseGreedyAction(self.sheepPolicy((np.array(targetPositionA) * 10, np.array(playerPositions[0]) * 10, np.array(playerPositions[1]) * 10)))) / 8
 
             # action3 = np.array(self.chooseGreedyAction(self.sheepPolicy((np.array(targetPositionA) * 10, np.array(playerPositions[0]) * 10)))) / 7
 
-            action4 = np.array(self.chooseGreedyAction(self.sheepPolicy((np.array(targetPositionA) * 10, np.array(playerPositions[0]) * 10, np.array(playerPositions[1]) * 10)))) / 8
+            # action4 = np.array(self.chooseGreedyAction(self.sheepPolicy((np.array(targetPositionA) * 10, np.array(playerPositions[0]) * 10, np.array(playerPositions[1]) * 10)))) / 8
+            targetStates = (tuple(targetPositionA), tuple(targetPositionB))
+            policyForCurrentStateDict1 = self.sheepPolicy[targetStates][tuple(playerPosition[0])] 
+            policyForCurrentStateDict2 = self.sheepPolicy[targetStates][tuple(playerPosition[0])]    
+     
+            actionMaxList1 = [action for action in policyForCurrentStateDict1.keys() if policyForCurrentStateDict1[action] == np.max(list(policyForCurrentStateDict1.values()))]
+            action3 = random.choice(actionMaxList1)
+
+            actionMaxList2 = [action for action in policyForCurrentStateDict2.keys() if policyForCurrentStateDict2[action] == np.max(list(policyForCurrentStateDict2.values()))]
+            action4 = random.choice(actionMaxList2)
+
 
             # action3 = action[2]
             # action4 = action[3]
+            playerPositions = [self.stayInBoundary(np.add(playerPosition, action)) for playerPosition, action in zip(playerPositions, [action1, action2])]
 
             targetPositionA = self.stayInBoundary(np.add(targetPositionA, action3))
             targetPositionB = self.stayInBoundary(np.add(targetPositionB, action4))
