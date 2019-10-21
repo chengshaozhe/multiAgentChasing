@@ -5,7 +5,15 @@ import itertools as it
 import math
 import os
 import collections as co
+class HumanControllerWithStrait():
+    def __init__(self, gridSize):
+        self.actionDict = [{pg.K_UP: [0, -1], pg.K_DOWN: [0, 1], pg.K_LEFT: [-1, 0], pg.K_RIGHT: [1, 0]},
+                           {pg.K_w: [0, -1], pg.K_s: [0, 1], pg.K_a: [-1, 0], pg.K_d: [1, 0]}]
+        self.gridSize = gridSize
 
+    def __call__(self, playerGrid, straitGrid):
+
+        return newGrid, action, actPlayer
 
 class HumanController():
     def __init__(self, writer, gridSize, stopwatchEvent, stopwatchUnit, wolfSpeedRatio, drawNewState, finishTime, stayInBoundary, saveImage, saveImageDir, sheepPolicy, chooseGreedyAction):
@@ -22,7 +30,7 @@ class HumanController():
         self.saveImageDir = saveImageDir
         self.sheepPolicy = sheepPolicy
         self.chooseGreedyAction = chooseGreedyAction
-
+        self.actionDict = [{pg.K_UP: [0, -1], pg.K_DOWN: [0, 1], pg.K_LEFT: [-1, 0], pg.K_RIGHT: [1, 0]}, {pg.K_w: [0, -1], pg.K_s: [0, 1], pg.K_a: [-1, 0], pg.K_d: [1, 0]}]
     def __call__(self, targetPositionA, targetPositionB,targetPositionC,targetPositionD,playerPositions, currentScore, currentStopwatch, trialIndex):
         newStopwatch = currentStopwatch
         remainningTime = max(0, self.finishTime - currentStopwatch)
@@ -55,42 +63,18 @@ class HumanController():
             pg.image.save(screen, self.saveImageDir + '/' + format(self.stopwatch, '04') + ".png")
         self.stopwatch += 1
 
-        pg.joystick.init()
-        joystickCount = pg.joystick.get_count()
+        action1 = [0, 0]
 
         pause = True
         while pause:
             for event in pg.event.get():
-                if event.type == pg.QUIT:
-                    pause = True
-                    pg.quit()
-                elif event.type == self.stopwatchEvent:
-                    newStopwatch = newStopwatch + self.stopwatchUnit
-
-            actionList = []
-            for i in range(joystickCount):
-                joystick = pg.joystick.Joystick(i)
-                joystick.init()
-                numAxes = joystick.get_numaxes()
-
-                for i in range(numAxes):
-                    # axis = joystick.get_axis(i)
-                    if abs(joystick.get_axis(i)) > 0.5:
-                        sign = joystick.get_axis(i) / abs(joystick.get_axis(i))
-                        axis = sign * math.log(9 * abs(joystick.get_axis(i)) + 1) / 2.303
-                    else:
-                        axis = joystick.get_axis(i)
-                    actionList.append(axis)
-            pause = False
-
-            joystickSpaceSize = joystickCount * numAxes
-            actionList = [0 if abs(actionList[i]) < 0.5 else actionList[i] for i in range(joystickSpaceSize)]
-            action = [actionList[i:i + 2] for i in range(0, len(actionList), numAxes)]
-
-            action1 = np.array(action[0]) * self.wolfSpeedRatio
-            action2 = np.array(action[1]) * self.wolfSpeedRatio
-
-
+                if event.type == pg.KEYDOWN:
+                    if event.key in self.actionDict[0].keys():
+                        action1 = self.actionDict[0][event.key]
+                        pause = False
+                    elif event.key in self.actionDict[1].keys():
+                        action2 = self.actionDict[1][event.key]
+                        pause = False
 
             # action3 = np.array(self.chooseGreedyAction(self.sheepPolicy((np.array(targetPositionA) * 10, np.array(playerPositions[0]) * 10, np.array(playerPositions[1]) * 10)))) / 8
 
