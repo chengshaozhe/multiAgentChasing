@@ -124,15 +124,59 @@ class DrawImage():
                     pg.quit()
             pg.time.wait(10)
         pg.event.set_blocked([pg.KEYDOWN, pg.KEYUP, pg.QUIT])
+class AttributionTrail(object):
 
+    def __init__(self,totalScore,drawAttributionTrail):
+
+        self.totalScore = totalScore
+        self.actionDict = [{ pg.K_LEFT: -1, pg.K_RIGHT: 1}, {pg.K_a: -1, pg.K_d: 1}]
+        self.comfirmDict=[pg.K_SPACE,pg.K_ENTER]
+        self.distributeUnit=0.1
+    def __call__(self,eatenFlag, hunterFlag)
+        hunterid=hunterFlag.index(True)
+        attributionScore=[0,0]
+        attributorPercent=np.random.ranint(0,11)/10#        
+        pause=True
+        drawAttributionTrail(hunterid,attributorPercent,)
+        while  pause: 
+            attributionDelta=0
+            for event in pg.event.get():
+                if event.type == pg.QUIT:
+                    pg.quit()
+                if event.type == pg.KEYDOWN:
+                    if event.key in self.actionDict[hunterid].keys():
+                        attributionDelta = self.actionDict[hunterid][event.key]*self.distributeUnit
+                    if event.key == self.comfirmDict[hunterid]:
+                        pause=False
+            #!
+            attributorPercent=attributorPercent+attributionDelta
+            drawAttributionTrail(hunterid,attributorPercent)    
+        if hunterid==0:
+            attributionScore=[self.totalScore*attributorPercent,self.totalScore*recipentPercent]
+        else:#hunterid=1
+            attributionScore=[self.totalScore*recipentPercent,self.totalScore*attributorPercent]
+
+        return attributionScore
 
 class DrawAttributionTrail:
-    def __init__(self, screen):
+    def __init__(self, screen,playerColors,totalBarLength,barHeight):
         self.screen = screen
+        self.playerColors=playerColors
         self.screenCenter = (self.screen.get_width() / 2, self.screen.get_height() / 2)
+        self.totalBarLength=totalBarLength
+        self.barHeight=barHeight
+    def __call__(self, attributorId,attributorPercent):
 
-    def __call__(self, eatenFlag):
+        recipentId=1-attributorId
+        attributorLen=int(self.totalBarLength*attributorPercent)  
+        attributorRect=pg.Rect((self.screenCenter[0]-self.totalBarLength/2),(self.screenCenter[1]-self.barHeight/2),(self.screenCenter[0]-self.totalBarLength/2+attributorLen),(self.screenCenter[1]+self.barHeight/2))
+        recipentRect=pg.Rect((self.screenCenter[0]-self.totalBarLength/2+attributorLen),(self.screenCenter[1]-self.barHeight/2),(self.screenCenter[0]+self.totalBarLength/2),(self.screenCenter[1]+self.barHeight/2),)
 
+        pg.draw.rect(self.screen, self.playerColors[hunterid], attributorRect, width=0)
+        pg.draw.rect(self.screen, self.playerColors[recipentId], recipentRect, width=0)
+ 
+
+        return self.screen
 
 if __name__ == "__main__":
     pg.init()
