@@ -20,7 +20,7 @@ from src.sheepPolicy import GenerateModel, restoreVariables, ApproximatePolicy, 
 def main():
     gridSize = 15
     bounds = [0, 0, gridSize - 1, gridSize - 1]
-    minDistanceForReborn = 30
+    minDistanceForReborn = 2
     condition = [-5, -3, -1, 0, 1, 3, 5]
     counter = [0] * len(condition)
     numPlayers = 2
@@ -38,7 +38,7 @@ def main():
     lineWidth = 1
     backgroundColor = THECOLORS['grey']  # [205, 255, 204]
     lineColor = [0, 0, 0]
-    targetColor = [THECOLORS['blue'], (0, 168, 107)]  # [255, 50, 50]
+    targetColor = [THECOLORS['blue'], THECOLORS['blue'],(0, 168, 107),(0, 168, 107)]  # [255, 50, 50]
     playerColors = [THECOLORS['orange'], THECOLORS['red']]
     targetRadius = 10
     playerRadius = 10
@@ -50,7 +50,7 @@ def main():
     stopwatchEvent = pg.USEREVENT + 1
 
     saveImage = False
-    killzone = 3
+    killzone = 1
     wolfSpeedRatio = 1
 
     pg.time.set_timer(stopwatchEvent, stopwatchUnit)
@@ -79,15 +79,15 @@ def main():
     xBoundary = [bounds[0], bounds[2]]
     yBoundary = [bounds[1], bounds[3]]
     stayInBoundary = StayInBoundary(xBoundary, yBoundary)
-#########         
+#########
     sheepActionSpace = [(1, 0), (0, 1),(-1, 0),(0, -1),(0, 0)]
     #grid policy
     # sheepPolicySingle =pickle.load(open("SingleWolfTwoSheepsGrid15.pkl","rb"))
 
     multiPath=os.path.join(os.path.abspath(os.path.join(os.path.join(os.getcwd(), os.pardir), 'data/policy')))
-    sheepPolicyMulti = pickle.load(open(os.path.join(multiPath,"noise0SheepToTwoWolfGird15_policy.pkl"),"rb"))
-
-    sheepPolicy = sheepPolicyMulti
+    sheepPolicyMulti = pickle.load(open(os.path.join(multiPath,"noise0WolfToTwoSheepGird15_policyWall.pkl"),"rb"))
+    sheepPolicyWalk = pickle.load(open(os.path.join(multiPath,"noise0SheepToTwoWolfGird15_policy.pkl"),"rb"))
+    sheepPolicy = [sheepPolicyMulti, sheepPolicyWalk]
     # sheepPolicy=lambda a:{[0,0]:1}
 
 

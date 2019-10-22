@@ -31,6 +31,7 @@ class HumanController():
         self.sheepPolicy = sheepPolicy
         self.chooseGreedyAction = chooseGreedyAction
         self.actionDict = [{pg.K_UP: [0, -1], pg.K_DOWN: [0, 1], pg.K_LEFT: [-1, 0], pg.K_RIGHT: [1, 0]}, {pg.K_w: [0, -1], pg.K_s: [0, 1], pg.K_a: [-1, 0], pg.K_d: [1, 0]}]
+
     def __call__(self, targetPositionA, targetPositionB,targetPositionC,targetPositionD,playerPositions, currentScore, currentStopwatch, trialIndex):
         newStopwatch = currentStopwatch
         remainningTime = max(0, self.finishTime - currentStopwatch)
@@ -40,11 +41,11 @@ class HumanController():
         results = co.OrderedDict()
         results["trialIndex"] = trialIndex
         results["timeStep"] = self.stopwatch
-        results["bean1GridX"] = targetPositionA[0]
+        results["sheep1GridX"] = targetPositionA[0]
         results["bean1GridY"] = targetPositionA[1]
         results["bean2GridX"] = targetPositionB[0]
         results["bean2GridY"] = targetPositionB[1]
-        results["sheep1GridX"] = targetPositionC[0]
+        results["bean1GridX"] = targetPositionC[0]
         results["sheep1GridY"] = targetPositionC[1]
         results["sheep2GridX"] = targetPositionD[0]
         results["sheep2GridY"] = targetPositionD[1]
@@ -64,33 +65,48 @@ class HumanController():
         self.stopwatch += 1
 
         action1 = [0, 0]
+        action2 = [0, 0]
+        action3 = [0, 0]
+        action4 = [0, 0]
+
+        wolfStates =(tuple(playerPositions[0]), tuple(playerPositions[1]))
+        wolfStatesReverse = (tuple(playerPositions[1]), tuple(playerPositions[0]))
+        try:
+            policyForCurrentStateDict1 = self.sheepPolicy[0][tuple(targetPositionA),wolfStates]
+        except KeyError as e:
+            policyForCurrentStateDict1 = self.sheepPolicy[0][tuple(targetPositionA),wolfStatesReverse]
+
+        try:
+            policyForCurrentStateDict2 = self.sheepPolicy[1][tuple(targetPositionB),wolfStates]
+        except KeyError as e:
+            policyForCurrentStateDict2 = self.sheepPolicy[1][tuple(targetPositionB),wolfStatesReverse]
+
+        actionMaxList1 = [action for action in policyForCurrentStateDict1.keys() if policyForCurrentStateDict1[action] == np.max(list(policyForCurrentStateDict1.values()))]
+
+        actionMaxList2 = [action for action in policyForCurrentStateDict2.keys() if policyForCurrentStateDict2[action] == np.max(list(policyForCurrentStateDict2.values()))]
 
         pause = True
-        while pause:
-            for event in pg.event.get():
-                if event.type == pg.QUIT:
-                    pause = True
-                    pg.quit()
-                elif event.type == self.stopwatchEvent:
-                    newStopwatch = newStopwatch + self.stopwatchUnit
-                if event.type == pg.KEYDOWN:
-                    if event.key in self.actionDict[0].keys():
-                        action1 = self.actionDict[0][event.key]
-                        pause = False
-                    elif event.key in self.actionDict[1].keys():
-                        action2 = self.actionDict[1][event.key]
-                        pause = False
-            targetStates = (tuple(targetPositionA), tuple(targetPositionB))
-            policyForCurrentStateDict1 = self.sheepPolicy[targetStates][tuple(playerPosition[0])] 
-            policyForCurrentStateDict2 = self.sheepPolicy[targetStates][tuple(playerPosition[0])]    
-     
-            actionMaxList1 = [action for action in policyForCurrentStateDict1.keys() if policyForCurrentStateDict1[action] == np.max(list(policyForCurrentStateDict1.values()))]
+
+        if currentStopwatch % 300 == 0:
             action3 = random.choice(actionMaxList1)
-
-            actionMaxList2 = [action for action in policyForCurrentStateDict2.keys() if policyForCurrentStateDict2[action] == np.max(list(policyForCurrentStateDict2.values()))]
             action4 = random.choice(actionMaxList2)
+        for event in pg.event.get():
+            if event.type == pg.QUIT:
+                pause = True
+                pg.quit()
+            elif event.type == self.stopwatchEvent:
+                newStopwatch = newStopwatch + self.stopwatchUnit
+            if event.type == pg.KEYDOWN:
+                if event.key in self.actionDict[0].keys():
+                    action1 = self.actionDict[0][event.key]
+                    pause = False
 
+                elif event.key in self.actionDict[1].keys():
+                    action2 = self.actionDict[1][event.key]
+                    pause = False
 
+        # action3 = (0,0)
+            # action4 = (0,0)
             # action3 = action[2]
             # action4 = action[3]
             playerPositions = [self.stayInBoundary(np.add(playerPosition, action)) for playerPosition, action in zip(playerPositions, [action1, action2])]
@@ -99,9 +115,10 @@ class HumanController():
             targetPositionB = self.stayInBoundary(np.add(targetPositionB, action4))
 
             remainningTime = max(0, self.finishTime - newStopwatch)
-            screen = self.drawNewState(targetPositionA, targetPositionB, playerPositions, remainningTime, currentScore)
+            screen = self.drawNewState(targetPositionA, targetPositionB,targetPositionC,targetPositionD, playerPositions, remainningTime, currentScore)
+
             pg.display.update()
-        return targetPositionA, targetPositionB, playerPositions, action, newStopwatch, screen
+        return targetPositionA, targetPositionB,targetPositionC,targetPositionD, playerPositions, [action1, action2], newStopwatch, screen
 
 
 def calculateSoftmaxProbability(probabilityList, beita):
@@ -137,7 +154,7 @@ class ModelController():
                 actionProbability = np.divide(list(policyForCurrentStateDict.values()), np.sum(list(policyForCurrentStateDict.values())))
                 softmaxProbabilityList = calculateSoftmaxProbability(list(actionProbability), self.softmaxBeita)
                 action = list(policyForCurrentStateDict.keys())[list(np.random.multinomial(1, softmaxProbabilityList)).index(1)]
-            playerNextPosition = np.add(playerPosition, action)
+            playerNextPosition = np.add(playerwaPosition, action)
             if np.any(playerNextPosition < 0) or np.any(playerNextPosition >= self.gridSize):
                 playerNextPosition = playerPosition
             pause = False

@@ -19,8 +19,8 @@ def indexCertainNumberInList(list, number):
 
 
 def samplePosition(bounds):
-    positionX = np.random.uniform(bounds[0], bounds[2])
-    positionY = np.random.uniform(bounds[1], bounds[3])
+    positionX = np.random.randint(bounds[0], bounds[2])
+    positionY = np.random.randint(bounds[1], bounds[3])
     position = [positionX, positionY]
     return position
 
@@ -44,7 +44,7 @@ class InitialWorld():
         while np.all(np.array([np.linalg.norm(np.array(humanGrid) - np.array(target3Grid)) for humanGrid in initPlayerGrids]) < self.minDistance):
             target3Grid = samplePosition(self.bounds)
         while np.all(np.array([np.linalg.norm(np.array(humanGrid) - np.array(target4Grid)) for humanGrid in initPlayerGrids]) < self.minDistance):
-            target4Grid = samplePosition(self.bounds)            
+            target4Grid = samplePosition(self.bounds)
         return target1Grid, target2Grid,target3Grid,target4Grid,initPlayerGrids
 
 
