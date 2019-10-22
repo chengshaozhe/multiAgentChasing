@@ -27,18 +27,18 @@ def main():
     initialWorld = InitialWorld(bounds, numPlayers, minDistanceForReborn)
     updateWorld = UpdateWorld(bounds, condition, counter, minDistanceForReborn)
 
-    screenWidth = 800
-    screenHeight = 800
+    screenWidth = 600
+    screenHeight = 600
 
     fullScreen = False
     initializeScreen = InitializeScreen(screenWidth, screenHeight, fullScreen)
     screen = initializeScreen()
 
-    leaveEdgeSpace = 10
+    leaveEdgeSpace = 2
     lineWidth = 1
     backgroundColor = THECOLORS['grey']  # [205, 255, 204]
     lineColor = [0, 0, 0]
-    targetColor = [THECOLORS['blue'], THECOLORS['blue'],(0, 168, 107),(0, 168, 107)]  # [255, 50, 50]
+    targetColor = [THECOLORS['blue'], THECOLORS['blue'], (0, 168, 107), (0, 168, 107)]  # [255, 50, 50]
     playerColors = [THECOLORS['orange'], THECOLORS['red']]
     targetRadius = 10
     playerRadius = 10
@@ -80,16 +80,15 @@ def main():
     yBoundary = [bounds[1], bounds[3]]
     stayInBoundary = StayInBoundary(xBoundary, yBoundary)
 #########
-    sheepActionSpace = [(1, 0), (0, 1),(-1, 0),(0, -1),(0, 0)]
-    #grid policy
+    sheepActionSpace = [(1, 0), (0, 1), (-1, 0), (0, -1), (0, 0)]
+    # grid policy
     # sheepPolicySingle =pickle.load(open("SingleWolfTwoSheepsGrid15.pkl","rb"))
 
-    multiPath=os.path.join(os.path.abspath(os.path.join(os.path.join(os.getcwd(), os.pardir), 'data/policy')))
-    sheepPolicyMulti = pickle.load(open(os.path.join(multiPath,"sheepRunTwoWolf.pkl"),"rb"))
-    sheepPolicyWalk = pickle.load(open(os.path.join(multiPath,"sheepRunTwoWolfWithRandomWalk.pkl"),"rb"))
-    sheepPolicy = [sheepPolicyMulti, sheepPolicyWalk]
-    # sheepPolicy=lambda a:{[0,0]:1}
-
+    # multiPath = os.path.join(os.path.abspath(os.path.join(os.path.join(os.getcwd(), os.pardir), 'data/policy')))
+    # sheepPolicyMulti = pickle.load(open(os.path.join(multiPath, "sheepRunTwoWolf.pkl"), "rb"))
+    # sheepPolicyWalk = pickle.load(open(os.path.join(multiPath, "sheepRunTwoWolfWithRandomWalk.pkl"), "rb"))
+    # sheepPolicy = [sheepPolicyMulti, sheepPolicyWalk]
+    sheepPolicy = {}
 
     softMaxBeta = 30
     softmaxAction = SoftmaxAction(softMaxBeta)
@@ -97,7 +96,7 @@ def main():
     # modelController = ModelController(policy, gridSize, stopwatchEvent, stopwatchUnit, drawNewState, finishTime, softmaxBeita)
 
     actionSpace = list(it.product([0, 1, -1], repeat=2))
-    actionSpace = [(1, 0), (0, 1),(-1, 0),(0, -1),(0, 0)]
+    actionSpace = [(1, 0), (0, 1), (-1, 0), (0, -1), (0, 0)]
     trial = Trial(humanController, actionSpace, killzone, drawNewState, stopwatchEvent, finishTime)
     experiment = Experiment(trial, writer, experimentValues, initialWorld, updateWorld, drawImage, resultsPath)
     giveExperimentFeedback = GiveExperimentFeedback(screen, textColorTuple, screenWidth, screenHeight)

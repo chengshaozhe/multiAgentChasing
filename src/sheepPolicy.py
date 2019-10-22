@@ -4,6 +4,42 @@
 import numpy as np
 import random
 import os
+class ExpSheepPolicy:
+	def __init__(passerbyPolicy,singlePolicy,multiPolicy,inferCurrentWolf):
+		self.passerbyPolicy=passerbyPolicy
+		self.singlePolicy=singlePolicy
+		self.multiPolicy=multiPolicy
+		self.inferCurrentWolf=inferCurrentWolf
+
+	def __call__(QueueState):		        
+		initialState=QueueState[0]
+		currentState=QueueState[-1]
+		goal=self.inferCurrentWolf(initialState,currentState)
+		if goal==[True,True]:
+			policyForCurrentStateDict= self.multiPolicy[currentState] 
+		elif goal==[True,False]:
+			policyForCurrentStateDict= self.singlePolicy[currentState[0],currentState[1]] 
+		elif goal==[False,True]:
+			policyForCurrentStateDict= self.singlePolicy[currentState[0],currentState[2]] 
+		elif goal==[False,False]:
+			policyForCurrentStateDict= self.passerbyPolicy[currentState] 
+		actionMaxList = [action for action in policyForCurrentStateDict.keys() if policyForCurrentStateDict[action] == np.max(list(policyForCurrentStateDict1.values()))]
+		return random.choice(actionMaxList)
+
+def inferGoalGridEnv(initialState,finalState):
+	sheepIndex=[0]
+	wolf1Index=[1]
+	wolf2Index=[2]
+	goal=[False,False]
+	if calculateGridDistance(finalState[1],initialState[0])< calculateGridDistance(initialState[1],initialState[0]):
+		goal[0]=True
+	if calculateGridDistance(finalState[2],initialState[0])< calculateGridDistance(initialState[2],initialState[0]):
+		goal[1]=True	
+	return goal
+
+def calculateGridDistance(gridA,gridB):
+	return np.linalg.norm(np.array(gridA) - np.array(gridB), ord=1)
+
 
 
 class GenerateModel:
@@ -101,8 +137,7 @@ class GenerateModel:
 
             with tf.name_scope("evaluate"):
                 with tf.name_scope("action"):
-                    crossEntropy_ = tf.nn.softmax_cross_entropy_with_logits_v2(logits=actionOutputLayerActivation_,
-                                                                               labels=groundTruthAction_)
+                    crossEntropy_ = tf.nn.softmax_cross_entropy_with_logits_v2(logits=actionOutputLayerActivation_,labels=groundTruthAction_)
                     actionLoss_ = tf.reduce_mean(crossEntropy_, name='loss')
                     tf.add_to_collection("actionLoss", actionLoss_)
                     actionLossSummary = tf.summary.scalar("actionLoss", actionLoss_)

@@ -5,6 +5,8 @@ import itertools as it
 import math
 import os
 import collections as co
+
+
 class HumanControllerWithStrait():
     def __init__(self, gridSize):
         self.actionDict = [{pg.K_UP: [0, -1], pg.K_DOWN: [0, 1], pg.K_LEFT: [-1, 0], pg.K_RIGHT: [1, 0]},
@@ -14,6 +16,7 @@ class HumanControllerWithStrait():
     def __call__(self, playerGrid, straitGrid):
 
         return newGrid, action, actPlayer
+
 
 class HumanController():
     def __init__(self, writer, gridSize, stopwatchEvent, stopwatchUnit, wolfSpeedRatio, drawNewState, finishTime, stayInBoundary, saveImage, saveImageDir, sheepPolicy, chooseGreedyAction):
@@ -32,11 +35,11 @@ class HumanController():
         self.chooseGreedyAction = chooseGreedyAction
         self.actionDict = [{pg.K_UP: [0, -1], pg.K_DOWN: [0, 1], pg.K_LEFT: [-1, 0], pg.K_RIGHT: [1, 0]}, {pg.K_w: [0, -1], pg.K_s: [0, 1], pg.K_a: [-1, 0], pg.K_d: [1, 0]}]
 
-    def __call__(self, targetPositionA, targetPositionB,targetPositionC,targetPositionD,playerPositions, currentScore, currentStopwatch, trialIndex):
+    def __call__(self, targetPositionA, targetPositionB, targetPositionC, targetPositionD, playerPositions, currentScore, currentStopwatch, trialIndex):
         newStopwatch = currentStopwatch
         remainningTime = max(0, self.finishTime - currentStopwatch)
 
-        screen = self.drawNewState(targetPositionA, targetPositionB,targetPositionC,targetPositionD, playerPositions, remainningTime, currentScore)
+        screen = self.drawNewState(targetPositionA, targetPositionB, targetPositionC, targetPositionD, playerPositions, remainningTime, currentScore)
 
         results = co.OrderedDict()
         results["trialIndex"] = trialIndex
@@ -69,41 +72,36 @@ class HumanController():
         action3 = [0, 0]
         action4 = [0, 0]
 
-        wolfStates =(tuple(playerPositions[0]), tuple(playerPositions[1]))
+        wolfStates = (tuple(playerPositions[0]), tuple(playerPositions[1]))
         wolfStatesReverse = (tuple(playerPositions[1]), tuple(playerPositions[0]))
-        try:
-            policyForCurrentStateDict1 = self.sheepPolicy[0][tuple(targetPositionA),wolfStates]
-        except KeyError as e:
-            policyForCurrentStateDict1 = self.sheepPolicy[0][tuple(targetPositionA),wolfStatesReverse]
+        # try:
+        #     policyForCurrentStateDict1 = self.sheepPolicy[0][tuple(targetPositionA),wolfStates]
+        # except KeyError as e:
+        #     policyForCurrentStateDict1 = self.sheepPolicy[0][tuple(targetPositionA),wolfStatesReverse]
 
-        try:
-            policyForCurrentStateDict2 = self.sheepPolicy[1][tuple(targetPositionB),wolfStates]
-        except KeyError as e:
-            policyForCurrentStateDict2 = self.sheepPolicy[1][tuple(targetPositionB),wolfStatesReverse]
+        # try:
+        #     policyForCurrentStateDict2 = self.sheepPolicy[1][tuple(targetPositionB),wolfStates]
+        # except KeyError as e:
+        #     policyForCurrentStateDict2 = self.sheepPolicy[1][tuple(targetPositionB),wolfStatesReverse]
 
-        actionMaxList1 = [action for action in policyForCurrentStateDict1.keys() if policyForCurrentStateDict1[action] == np.max(list(policyForCurrentStateDict1.values()))]
+        # actionMaxList1 = [action for action in policyForCurrentStateDict1.keys() if policyForCurrentStateDict1[action] == np.max(list(policyForCurrentStateDict1.values()))]
 
-        actionMaxList2 = [action for action in policyForCurrentStateDict2.keys() if policyForCurrentStateDict2[action] == np.max(list(policyForCurrentStateDict2.values()))]
+        # actionMaxList2 = [action for action in policyForCurrentStateDict2.keys() if policyForCurrentStateDict2[action] == np.max(list(policyForCurrentStateDict2.values()))]
 
-        pause = True
+        # if currentStopwatch % 300 == 0:
+        #     action3 = random.choice(actionMaxList1)
+        #     action4 = random.choice(actionMaxList2)
 
-        if currentStopwatch % 300 == 0:
-            action3 = random.choice(actionMaxList1)
-            action4 = random.choice(actionMaxList2)
         for event in pg.event.get():
             if event.type == pg.QUIT:
-                pause = True
                 pg.quit()
             elif event.type == self.stopwatchEvent:
                 newStopwatch = newStopwatch + self.stopwatchUnit
             if event.type == pg.KEYDOWN:
                 if event.key in self.actionDict[0].keys():
                     action1 = self.actionDict[0][event.key]
-                    pause = False
-
                 elif event.key in self.actionDict[1].keys():
                     action2 = self.actionDict[1][event.key]
-                    pause = False
 
         # action3 = (0,0)
             # action4 = (0,0)
@@ -115,10 +113,10 @@ class HumanController():
             targetPositionB = self.stayInBoundary(np.add(targetPositionB, action4))
 
             remainningTime = max(0, self.finishTime - newStopwatch)
-            screen = self.drawNewState(targetPositionA, targetPositionB,targetPositionC,targetPositionD, playerPositions, remainningTime, currentScore)
+            screen = self.drawNewState(targetPositionA, targetPositionB, targetPositionC, targetPositionD, playerPositions, remainningTime, currentScore)
 
             pg.display.update()
-        return targetPositionA, targetPositionB,targetPositionC,targetPositionD, playerPositions, [action1, action2], newStopwatch, screen
+        return targetPositionA, targetPositionB, targetPositionC, targetPositionD, playerPositions, [action1, action2], newStopwatch, screen
 
 
 def calculateSoftmaxProbability(probabilityList, beita):
