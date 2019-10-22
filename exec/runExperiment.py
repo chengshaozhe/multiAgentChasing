@@ -85,8 +85,8 @@ def main():
     # sheepPolicySingle =pickle.load(open("SingleWolfTwoSheepsGrid15.pkl","rb"))
 
     multiPath=os.path.join(os.path.abspath(os.path.join(os.path.join(os.getcwd(), os.pardir), 'data/policy')))
-    sheepPolicyMulti = pickle.load(open(os.path.join(multiPath,"noise0WolfToTwoSheepGird15_policyWall.pkl"),"rb"))
-    sheepPolicyWalk = pickle.load(open(os.path.join(multiPath,"noise0SheepToTwoWolfGird15_policy.pkl"),"rb"))
+    sheepPolicyMulti = pickle.load(open(os.path.join(multiPath,"sheepRunTwoWolf.pkl"),"rb"))
+    sheepPolicyWalk = pickle.load(open(os.path.join(multiPath,"sheepRunTwoWolfWithRandomWalk.pkl"),"rb"))
     sheepPolicy = [sheepPolicyMulti, sheepPolicyWalk]
     # sheepPolicy=lambda a:{[0,0]:1}
 
