@@ -11,9 +11,9 @@ class ExpSheepPolicy:
 		self.multiPolicy=multiPolicy
 		self.inferCurrentWolf=inferCurrentWolf
 
-	def __call__(QueueState):		        
-		initialState=QueueState[0]
-		currentState=QueueState[-1]
+	def __call__(dequeState):		        
+		initialState=dequeState[0]
+		currentState=dequeState[-1]
 		goal=self.inferCurrentWolf(initialState,currentState)
 		if goal==[True,True]:
 			policyForCurrentStateDict= self.multiPolicy[currentState] 
@@ -82,8 +82,7 @@ class GenerateModel:
             with tf.variable_scope("shared"):
                 activation_ = states_
                 for i in range(len(sharedWidths)):
-                    fcLayer = tf.layers.Dense(units=sharedWidths[i], activation=tf.nn.relu, kernel_initializer=initWeight,
-                                              bias_initializer=initBias, name="fc{}".format(i + 1))
+                    fcLayer = tf.layers.Dense(units=sharedWidths[i], activation=tf.nn.relu, kernel_initializer=initWeight,bias_initializer=initBias, name="fc{}".format(i + 1))
                     activation_ = fcLayer(activation_)
                     tf.add_to_collections(["weights", f"weight/{fcLayer.kernel.name}"], fcLayer.kernel)
                     tf.add_to_collections(["biases", f"bias/{fcLayer.bias.name}"], fcLayer.bias)
@@ -93,8 +92,7 @@ class GenerateModel:
             with tf.variable_scope("action"):
                 activation_ = sharedOutput_
                 for i in range(len(actionLayerWidths)):
-                    fcLayer = tf.layers.Dense(units=actionLayerWidths[i], activation=tf.nn.relu, kernel_initializer=initWeight,
-                                              bias_initializer=initBias, name="fc{}".format(i + 1))
+                    fcLayer = tf.layers.Dense(units=actionLayerWidths[i], activation=tf.nn.relu, kernel_initializer=initWeight,bias_initializer=initBias, name="fc{}".format(i + 1))
                     activation_ = fcLayer(activation_)
                     tf.add_to_collections(["weights", f"weight/{fcLayer.kernel.name}"], fcLayer.kernel)
                     tf.add_to_collections(["biases", f"bias/{fcLayer.bias.name}"], fcLayer.bias)

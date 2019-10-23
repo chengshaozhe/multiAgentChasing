@@ -8,11 +8,11 @@ import numpy as np
 import pickle
 import pygame as pg
 from pygame.color import THECOLORS
-from src.visualization import DrawBackground, DrawNewState, DrawImage, GiveExperimentFeedback, InitializeScreen,AttributionTrail,DrawAttributionTrail
+from src.visualization import DrawBackground, DrawNewState, DrawImage, GiveExperimentFeedback, InitializeScreen,DrawAttributionTrail
 from src.controller import HumanController, ModelController
 from src.updateWorld import InitialWorld, UpdateWorld, StayInBoundary
 from src.writer import WriteDataFrameToCSV
-from src.trial import Trial
+from src.trial import Trial,AttributionTrail
 from src.experiment import Experiment
 from src.sheepPolicy import GenerateModel, restoreVariables, ApproximatePolicy, chooseGreedyAction, sampleAction, SoftmaxAction
 

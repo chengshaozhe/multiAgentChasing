@@ -1,4 +1,4 @@
-
+import numpy as np
 class Experiment():
     def __init__(self, trial, writer, experimentValues, initialWorld, updateWorld, drawImage, resultsPath):
         self.trial = trial
@@ -12,7 +12,7 @@ class Experiment():
     def __call__(self, finishTime):
         sheep1Grid, sheep2Grid,bean1Grid, bean2Grid,playerGrid = self.initialWorld()
         trialIndex = 0
-        score = 0
+        score =np.array ([0,0])
         currentStopwatch = 0
         while True:
             print('trialIndex', trialIndex)

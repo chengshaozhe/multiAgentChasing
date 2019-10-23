@@ -17,6 +17,47 @@ def calculateGridDistance(gridA, gridB):
 def isAnyKilled(humanGrids, targetGrid, killzone):
     return np.any(np.array([calculateGridDistance(humanGrid, targetGrid) for humanGrid in humanGrids]) < killzone)
 
+class AttributionTrail:
+    def __init__(self,totalScore,drawAttributionTrail):
+        self.totalScore = totalScore
+        self.actionDict = [{ pg.K_LEFT: -1, pg.K_RIGHT: 1}, {pg.K_a: -1, pg.K_d: 1}]
+        self.comfirmDict=[pg.K_RETURN,pg.K_SPACE]
+        self.distributeUnit=0.1
+        self.drawAttributionTrail=drawAttributionTrail
+    def __call__(self,eatenFlag, hunterFlag):
+        hunterid=hunterFlag.index(True)
+        attributionScore=[0,0]
+        attributorPercent=0.5#
+        pause=True
+        self.drawAttributionTrail(hunterid,attributorPercent)
+        pg.event.set_allowed([pg.KEYDOWN])
+
+        attributionDelta=0
+        stayAttributionBoudray=lambda attributorPercent:max(min(attributorPercent,1),0)
+        while  pause:
+            for event in pg.event.get():
+                if event.type == pg.QUIT:
+                    pg.quit()
+                if event.type == pg.KEYDOWN:
+                    print(event.key)
+                    if event.key in self.actionDict[hunterid].keys():
+                        attributionDelta = self.actionDict[hunterid][event.key]*self.distributeUnit
+                        print(attributionDelta)
+
+                        attributorPercent=stayAttributionBoudray(attributorPercent+attributionDelta)
+
+                        self.drawAttributionTrail(hunterid,attributorPercent)
+                    elif event.key == self.comfirmDict[hunterid]:
+                        pause=False
+            pg.time.wait(10)
+            #!
+        recipentPercent=1-attributorPercent
+        if hunterid==0:
+            attributionScore=[self.totalScore*attributorPercent,self.totalScore*recipentPercent]
+        else:#hunterid=1
+            attributionScore=[self.totalScore*recipentPercent,self.totalScore*attributorPercent]
+
+        return attributionScore
 
 class Trial():
     def __init__(self, humanController, actionSpace, killzone, drawNewState, stopwatchEvent, finishTime, attributionTrail):
@@ -26,6 +67,7 @@ class Trial():
         self.drawNewState = drawNewState
         self.stopwatchEvent = stopwatchEvent
         self.finishTime = finishTime
+        self. beanReward=1
         self.attributionTrail=attributionTrail
     def checkEaten(self, sheep1Grid, sheep2Grid, bean1Grid, bean2Grid, humanGrids):
         if isAnyKilled(humanGrids, sheep1Grid, self.killzone):
@@ -67,10 +109,16 @@ class Trial():
         # score = np.add(score, np.sum(eatenFlag))
 
         pause = self.checkTerminationOfTrial(action, eatenFlag, currentStopwatch)
+        
+        memorySize=5
+        from collections import deque
+        stateMemory=deque(maxlen=memorySize)
+        
         while pause:
-            sheep1Grid, sheep2Grid, bean1Grid, bean2Grid, playerGrid, action, currentStopwatch, screen = self.humanController(sheep1Grid, sheep2Grid, bean1Grid, bean2Grid, playerGrid, score, currentStopwatch, trialIndex)
+            stateMemory.append([sheep1Grid, sheep2Grid, playerGrid])
+            sheep1Grid, sheep2Grid, bean1Grid, bean2Grid, playerGrid, action, currentStopwatch, screen = self.humanController(sheep1Grid, sheep2Grid, bean1Grid, bean2Grid, playerGrid, score, currentStopwatch, trialIndex,stateMemory)
             eatenFlag, hunterFlag = self.checkEaten(sheep1Grid, sheep2Grid, bean1Grid, bean2Grid, playerGrid)
-            score = np.add(score, np.sum(eatenFlag))
+            # score = np.add(score, np.sum(eatenFlag))
             pause = self.checkTerminationOfTrial(action, eatenFlag, currentStopwatch)
         wholeResponseTime = time.get_ticks() - initialTime
         pg.event.set_blocked([pg.KEYDOWN, pg.KEYUP])
@@ -84,22 +132,23 @@ class Trial():
         # results["player1GridY"] = initialPlayerGrid[0][1]
         # results["player2GridX"] = initialPlayerGrid[1][0]
         # results["player2GridY"] = initialPlayerGrid[1][1]
-
+        addSocre=[0,0]
         if True in eatenFlag[:2]:
-            self.attributionTrail( eatenFlag, hunterFlag)
-
+            addSocre=self.attributionTrail( eatenFlag, hunterFlag)
+            results["beanEaten"] = eatenFlag.index(True) + 1
         if True in eatenFlag:
             results["beanEaten"] = eatenFlag.index(True) + 1
-            oldGrid = eval('bean' + str(eatenFlag.index(False) + 1) + 'Grid')
+            addSocre[hunterFlag] =self. beanReward
+            # oldGrid = eval('bean' + str(eatenFlag.index(False) + 1) + 'Grid')
             # drawText(screen, 'caught!', THECOLORS['red'], (screen.get_width() / 2, screen.get_height() / 2))
             # pg.display.update()
             # pg.time.wait(2000)
         else:
             results["beanEaten"] = 0
-            oldGrid = None
+            # oldGrid = None
         # results["firstResponseTime"] = firstResponseTime
         results["trialTime"] = wholeResponseTime
-
+        score=np.add(score, addSocre)
         return results, [sheep1Grid, sheep2Grid, bean1Grid, bean2Grid], playerGrid, score, currentStopwatch, eatenFlag
 
 
