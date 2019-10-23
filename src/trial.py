@@ -86,7 +86,7 @@ class Trial():
         # results["player2GridY"] = initialPlayerGrid[1][1]
 
         if True in eatenFlag[:2]:
-            score = attributionTrail(screen, eatenFlag, hunterFlag)
+            score = drawAttributionTrail(screen, eatenFlag, hunterFlag)
 
         if True in eatenFlag:
             results["beanEaten"] = eatenFlag.index(True) + 1
