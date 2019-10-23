@@ -71,10 +71,10 @@ class DrawBackground():
         self.screen.fill((0, 0, 0))
         pg.draw.rect(self.screen, self.backgroundColor, pg.Rect(np.int(self.leaveEdgeSpace * self.widthLineStepSpace), np.int(self.leaveEdgeSpace * self.heightLineStepSpace), np.int(self.gridSize * self.widthLineStepSpace), np.int(self.gridSize * self.heightLineStepSpace)))
 
-        seconds = currentTime / 1000
-        drawText(self.screen, 'Time: ' + str("%4.1f" % seconds) + 's', THECOLORS['white'], (self.widthLineStepSpace * 15, self.leaveEdgeSpace * 3))
-        drawText(self.screen, 'Score: ' + str(currentScore[0]), self.textColorTuple, (self.widthLineStepSpace * 50, self.leaveEdgeSpace * 3))
-        drawText(self.screen, 'Score: ' + str(currentScore[1]), self.textColorTuple, (self.widthLineStepSpace * 50, self.leaveEdgeSpace * 3))
+        # seconds = currentTime / 1000
+        # drawText(self.screen, 'Time: ' + str("%4.1f" % seconds) + 's', THECOLORS['white'], (self.widthLineStepSpace * 15, self.leaveEdgeSpace * 3))
+        # drawText(self.screen, 'Score: ' + str(currentScore), self.textColorTuple, (self.widthLineStepSpace * 50, self.leaveEdgeSpace * 3))
+        # drawText(self.screen, 'Score: ' + str(currentScore), self.textColorTuple, (self.widthLineStepSpace * 50, self.leaveEdgeSpace * 3))
         return
 
 
@@ -124,33 +124,42 @@ class DrawImage():
                     pg.quit()
             pg.time.wait(10)
         pg.event.set_blocked([pg.KEYDOWN, pg.KEYUP, pg.QUIT])
-class AttributionTrail(object):
 
+class AttributionTrail:
     def __init__(self,totalScore,drawAttributionTrail):
-
         self.totalScore = totalScore
         self.actionDict = [{ pg.K_LEFT: -1, pg.K_RIGHT: 1}, {pg.K_a: -1, pg.K_d: 1}]
-        self.comfirmDict=[pg.K_SPACE,pg.K_ENTER]
+        self.comfirmDict=[pg.K_RETURN,pg.K_SPACE]
         self.distributeUnit=0.1
-    def __call__(self,eatenFlag, hunterFlag)
+        self.drawAttributionTrail=drawAttributionTrail
+    def __call__(self,eatenFlag, hunterFlag):
         hunterid=hunterFlag.index(True)
         attributionScore=[0,0]
-        attributorPercent=np.random.ranint(0,11)/10#        
+        attributorPercent=0.5#
         pause=True
-        drawAttributionTrail(hunterid,attributorPercent,)
-        while  pause: 
-            attributionDelta=0
+        self.drawAttributionTrail(hunterid,attributorPercent)
+        pg.event.set_allowed([pg.KEYDOWN])
+
+        attributionDelta=0
+        stayAttributionBoudray=lambda attributorPercent:max(min(attributorPercent,1),0)
+        while  pause:
             for event in pg.event.get():
                 if event.type == pg.QUIT:
                     pg.quit()
                 if event.type == pg.KEYDOWN:
+                    print(event.key)
                     if event.key in self.actionDict[hunterid].keys():
                         attributionDelta = self.actionDict[hunterid][event.key]*self.distributeUnit
-                    if event.key == self.comfirmDict[hunterid]:
+                        print(attributionDelta)
+
+                        attributorPercent=stayAttributionBoudray(attributorPercent+attributionDelta)
+
+                        self.drawAttributionTrail(hunterid,attributorPercent)
+                    elif event.key == self.comfirmDict[hunterid]:
                         pause=False
+            pg.time.wait(10)
             #!
-            attributorPercent=attributorPercent+attributionDelta
-            drawAttributionTrail(hunterid,attributorPercent)    
+        recipentPercent=1-attributorPercent
         if hunterid==0:
             attributionScore=[self.totalScore*attributorPercent,self.totalScore*recipentPercent]
         else:#hunterid=1
@@ -162,20 +171,26 @@ class DrawAttributionTrail:
     def __init__(self, screen,playerColors,totalBarLength,barHeight):
         self.screen = screen
         self.playerColors=playerColors
-        self.screenCenter = (self.screen.get_width() / 2, self.screen.get_height() / 2)
+        self.screenCenter =[300,300]# (self.screen.get_width() / 2, self.screen.get_height() / 2)
         self.totalBarLength=totalBarLength
         self.barHeight=barHeight
+
     def __call__(self, attributorId,attributorPercent):
-
+        print(attributorId)
         recipentId=1-attributorId
-        attributorLen=int(self.totalBarLength*attributorPercent)  
-        attributorRect=pg.Rect((self.screenCenter[0]-self.totalBarLength/2),(self.screenCenter[1]-self.barHeight/2),(self.screenCenter[0]-self.totalBarLength/2+attributorLen),(self.screenCenter[1]+self.barHeight/2))
-        recipentRect=pg.Rect((self.screenCenter[0]-self.totalBarLength/2+attributorLen),(self.screenCenter[1]-self.barHeight/2),(self.screenCenter[0]+self.totalBarLength/2),(self.screenCenter[1]+self.barHeight/2),)
+        attributorLen=int(self.totalBarLength*attributorPercent)
+        # attributorRect=pg.Rect((self.screenCenter[0]-self.totalBarLength/2),(self.screenCenter[1]-self.barHeight/2),(self.screenCenter[0]-self.totalBarLength/2+attributorLen),(self.screenCenter[1]+self.barHeight/2))
+        # recipentRect=pg.Rect((self.screenCenter[0]-self.totalBarLength/2+attributorLen),(self.screenCenter[1]-self.barHeight/2),(self.screenCenter[0]+self.totalBarLength/2),(self.screenCenter[1]+self.barHeight/2),)
+        attributorRect=((self.screenCenter[0]-self.totalBarLength/2,self.screenCenter[1]-self.barHeight/2),(attributorLen,self.barHeight))
+        recipentRect=((self.screenCenter[0]-self.totalBarLength/2+attributorLen,self.screenCenter[1]-self.barHeight/2),(self.totalBarLength-attributorLen,self.barHeight))
+        # pg.draw.rect(self.screen,(255, 0, 0, 255),((250.0, 290.0), (30, 20)))
+        # pg.draw.rect(self.screen,self.playerColors[attributorId], pg.Rect(250, 290, 30,20))
+        # print(self.playerColors[attributorId], attributorRect)
+        # pg.draw.rect(self.screen, self.self.playerColors[attributorId], pg.Rect(250, 290, 30,20))
+        pg.draw.rect(self.screen, self.playerColors[attributorId], attributorRect)
+        pg.draw.rect(self.screen, self.playerColors[recipentId], recipentRect)
 
-        pg.draw.rect(self.screen, self.playerColors[hunterid], attributorRect, width=0)
-        pg.draw.rect(self.screen, self.playerColors[recipentId], recipentRect, width=0)
- 
-
+        pg.display.flip()
         return self.screen
 
 if __name__ == "__main__":

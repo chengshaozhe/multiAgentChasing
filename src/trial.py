@@ -19,14 +19,14 @@ def isAnyKilled(humanGrids, targetGrid, killzone):
 
 
 class Trial():
-    def __init__(self, humanController, actionSpace, killzone, drawNewState, stopwatchEvent, finishTime):
+    def __init__(self, humanController, actionSpace, killzone, drawNewState, stopwatchEvent, finishTime, attributionTrail):
         self.humanController = humanController
         self.actionSpace = actionSpace
         self.killzone = killzone
         self.drawNewState = drawNewState
         self.stopwatchEvent = stopwatchEvent
         self.finishTime = finishTime
-
+        self.attributionTrail=attributionTrail
     def checkEaten(self, sheep1Grid, sheep2Grid, bean1Grid, bean2Grid, humanGrids):
         if isAnyKilled(humanGrids, sheep1Grid, self.killzone):
             eatenFlag = [True, False, False, False]
@@ -86,7 +86,7 @@ class Trial():
         # results["player2GridY"] = initialPlayerGrid[1][1]
 
         if True in eatenFlag[:2]:
-            score = attributionTrail(screen, eatenFlag, hunterFlag)
+            self.attributionTrail( eatenFlag, hunterFlag)
 
         if True in eatenFlag:
             results["beanEaten"] = eatenFlag.index(True) + 1

@@ -8,7 +8,7 @@ import numpy as np
 import pickle
 import pygame as pg
 from pygame.color import THECOLORS
-from src.visualization import DrawBackground, DrawNewState, DrawImage, GiveExperimentFeedback, InitializeScreen
+from src.visualization import DrawBackground, DrawNewState, DrawImage, GiveExperimentFeedback, InitializeScreen,AttributionTrail,DrawAttributionTrail
 from src.controller import HumanController, ModelController
 from src.updateWorld import InitialWorld, UpdateWorld, StayInBoundary
 from src.writer import WriteDataFrameToCSV
@@ -42,6 +42,8 @@ def main():
     playerColors = [THECOLORS['orange'], THECOLORS['red']]
     targetRadius = 10
     playerRadius = 10
+    totalBarLength=100
+    barHeight=20
     stopwatchUnit = 100
     finishTime = 1000 * 60 * 3
     block = 1
@@ -74,6 +76,7 @@ def main():
     drawBackground = DrawBackground(screen, gridSize, leaveEdgeSpace, backgroundColor, lineColor, lineWidth, textColorTuple)
     drawNewState = DrawNewState(screen, drawBackground, targetColor, playerColors, targetRadius, playerRadius)
     drawImage = DrawImage(screen)
+    drawAttributionTrail=DrawAttributionTrail(screen,playerColors,totalBarLength,barHeight)
     saveImageDir = os.path.join(os.path.join(os.path.abspath(os.path.join(os.getcwd(), os.pardir)), 'data'), experimentValues["name"])
 
     xBoundary = [bounds[0], bounds[2]]
@@ -81,14 +84,16 @@ def main():
     stayInBoundary = StayInBoundary(xBoundary, yBoundary)
 #########
     sheepActionSpace = [(1, 0), (0, 1), (-1, 0), (0, -1), (0, 0)]
-    # grid policy
+    # sheepPolicy = {}
     # sheepPolicySingle =pickle.load(open("SingleWolfTwoSheepsGrid15.pkl","rb"))
 
-    # multiPath = os.path.join(os.path.abspath(os.path.join(os.path.join(os.getcwd(), os.pardir), 'data/policy')))
-    # sheepPolicyMulti = pickle.load(open(os.path.join(multiPath, "sheepRunTwoWolf.pkl"), "rb"))
+    multiPath = os.path.join(os.path.abspath(os.path.join(os.path.join(os.getcwd(), os.pardir), 'data/policy')))
+    sheepPolicyMulti = pickle.load(open(os.path.join(multiPath, "sheepRunTwoWolf.pkl"), "rb"))
     # sheepPolicyWalk = pickle.load(open(os.path.join(multiPath, "sheepRunTwoWolfWithRandomWalk.pkl"), "rb"))
-    # sheepPolicy = [sheepPolicyMulti, sheepPolicyWalk]
-    sheepPolicy = {}
+    sheepPolicySingle = pickle.load(open(os.path.join(multiPath, "sheepRunOneWolfGird15.pkl"), "rb"))
+
+    sheepPolicy = [sheepPolicyMulti, sheepPolicyMulti,sheepPolicySingle]
+
 
     softMaxBeta = 30
     softmaxAction = SoftmaxAction(softMaxBeta)
@@ -97,7 +102,9 @@ def main():
 
     actionSpace = list(it.product([0, 1, -1], repeat=2))
     actionSpace = [(1, 0), (0, 1), (-1, 0), (0, -1), (0, 0)]
-    trial = Trial(humanController, actionSpace, killzone, drawNewState, stopwatchEvent, finishTime)
+    totalScore=10
+    attributionTrail=AttributionTrail(totalScore,drawAttributionTrail)
+    trial = Trial(humanController, actionSpace, killzone, drawNewState, stopwatchEvent, finishTime, attributionTrail)
     experiment = Experiment(trial, writer, experimentValues, initialWorld, updateWorld, drawImage, resultsPath)
     giveExperimentFeedback = GiveExperimentFeedback(screen, textColorTuple, screenWidth, screenHeight)
 
