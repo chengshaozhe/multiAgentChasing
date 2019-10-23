@@ -11,18 +11,18 @@ class ExpSheepPolicy:
 		self.multiPolicy=multiPolicy
 		self.inferCurrentWolf=inferCurrentWolf
 
-	def __call__(QueueState):		        
+	def __call__(QueueState):
 		initialState=QueueState[0]
 		currentState=QueueState[-1]
 		goal=self.inferCurrentWolf(initialState,currentState)
 		if goal==[True,True]:
-			policyForCurrentStateDict= self.multiPolicy[currentState] 
+			policyForCurrentStateDict= self.multiPolicy[currentState]
 		elif goal==[True,False]:
-			policyForCurrentStateDict= self.singlePolicy[currentState[0],currentState[1]] 
+			policyForCurrentStateDict= self.singlePolicy[currentState[0],currentState[1]]
 		elif goal==[False,True]:
-			policyForCurrentStateDict= self.singlePolicy[currentState[0],currentState[2]] 
+			policyForCurrentStateDict= self.singlePolicy[currentState[0],currentState[2]]
 		elif goal==[False,False]:
-			policyForCurrentStateDict= self.passerbyPolicy[currentState] 
+			policyForCurrentStateDict= self.passerbyPolicy[currentState]
 		actionMaxList = [action for action in policyForCurrentStateDict.keys() if policyForCurrentStateDict[action] == np.max(list(policyForCurrentStateDict1.values()))]
 		return random.choice(actionMaxList)
 
@@ -34,7 +34,7 @@ def inferGoalGridEnv(initialState,finalState):
 	if calculateGridDistance(finalState[1],initialState[0])< calculateGridDistance(initialState[1],initialState[0]):
 		goal[0]=True
 	if calculateGridDistance(finalState[2],initialState[0])< calculateGridDistance(initialState[2],initialState[0]):
-		goal[1]=True	
+		goal[1]=True
 	return goal
 
 def calculateGridDistance(gridA,gridB):

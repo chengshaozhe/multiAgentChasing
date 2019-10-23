@@ -14,7 +14,7 @@ from src.updateWorld import InitialWorld, UpdateWorld, StayInBoundary
 from src.writer import WriteDataFrameToCSV
 from src.trial import Trial
 from src.experiment import Experiment
-from src.sheepPolicy import GenerateModel, restoreVariables, ApproximatePolicy, chooseGreedyAction, sampleAction, SoftmaxAction
+from src.sheepPolicy import GenerateModel, restoreVariables, ApproximatePolicy, chooseGreedyAction, sampleAction, SoftmaxAction,ExpSheepPolicy,calculateGridDistance,inferGoalGridEnv
 
 
 def main():
@@ -89,9 +89,9 @@ def main():
 
     multiPath = os.path.join(os.path.abspath(os.path.join(os.path.join(os.getcwd(), os.pardir), 'data/policy')))
     sheepPolicyMulti = pickle.load(open(os.path.join(multiPath, "sheepRunTwoWolf.pkl"), "rb"))
-    # sheepPolicyWalk = pickle.load(open(os.path.join(multiPath, "sheepRunTwoWolfWithRandomWalk.pkl"), "rb"))
+    sheepPolicyWalk = pickle.load(open(os.path.join(multiPath, "sheepRunTwoWolfWithRandomWalk.pkl"), "rb"))
     sheepPolicySingle = pickle.load(open(os.path.join(multiPath, "sheepRunOneWolfGird15.pkl"), "rb"))
-
+    sheepPolicy=ExpSheepPolicy(sheepPolicyWalk,sheepPolicySingle,sheepPolicyMulti,inferGoalGridEnv)
     sheepPolicy = [sheepPolicyMulti, sheepPolicyMulti,sheepPolicySingle]
 
 
