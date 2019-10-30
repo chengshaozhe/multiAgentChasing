@@ -74,23 +74,23 @@ class HumanController():
 
         wolfStates = (tuple(playerPositions[0]), tuple(playerPositions[1]))
         wolfStatesReverse = (tuple(playerPositions[1]), tuple(playerPositions[0]))
-        # try:
-        #     policyForCurrentStateDict1 = self.sheepPolicy[0][tuple(targetPositionA),wolfStates]
-        # except KeyError as e:
-        #     policyForCurrentStateDict1 = self.sheepPolicy[0][tuple(targetPositionA),wolfStatesReverse]
+        try:
+            policyForCurrentStateDict1 = self.sheepPolicy[0][tuple(targetPositionA),wolfStates]
+        except KeyError as e:
+            policyForCurrentStateDict1 = self.sheepPolicy[0][tuple(targetPositionA),wolfStatesReverse]
 
-        # try:
-        #     policyForCurrentStateDict2 = self.sheepPolicy[1][tuple(targetPositionB),wolfStates]
-        # except KeyError as e:
-        #     policyForCurrentStateDict2 = self.sheepPolicy[1][tuple(targetPositionB),wolfStatesReverse]
+        try:
+            policyForCurrentStateDict2 = self.sheepPolicy[1][tuple(targetPositionB),wolfStates]
+        except KeyError as e:
+            policyForCurrentStateDict2 = self.sheepPolicy[1][tuple(targetPositionB),wolfStatesReverse]
 
-        # actionMaxList1 = [action for action in policyForCurrentStateDict1.keys() if policyForCurrentStateDict1[action] == np.max(list(policyForCurrentStateDict1.values()))]
+        actionMaxList1 = [action for action in policyForCurrentStateDict1.keys() if policyForCurrentStateDict1[action] == np.max(list(policyForCurrentStateDict1.values()))]
 
-        # actionMaxList2 = [action for action in policyForCurrentStateDict2.keys() if policyForCurrentStateDict2[action] == np.max(list(policyForCurrentStateDict2.values()))]
+        actionMaxList2 = [action for action in policyForCurrentStateDict2.keys() if policyForCurrentStateDict2[action] == np.max(list(policyForCurrentStateDict2.values()))]
 
-        # if currentStopwatch % 300 == 0:
-        #     action3 = random.choice(actionMaxList1)
-        #     action4 = random.choice(actionMaxList2)
+        if currentStopwatch % 200 == 0:
+            action3 = random.choice(actionMaxList1)
+            action4 = random.choice(actionMaxList2)
 
         for event in pg.event.get():
             if event.type == pg.QUIT:
