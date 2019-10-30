@@ -23,11 +23,11 @@ class HumanController():
         self.sheepPolicy = sheepPolicy
         self.chooseGreedyAction = chooseGreedyAction
 
-    def __call__(self, targetPositionA, targetPositionB,targetPositionC, targetPositionD, playerPositions, currentScore, currentStopwatch, trialIndex):
+    def __call__(self,targetPositions, playerPositions, currentScore, currentStopwatch, trialIndex):
         newStopwatch = currentStopwatch
         remainningTime = max(0, self.finishTime - currentStopwatch)
 
-        screen = self.drawNewState(targetPositionA, targetPositionB,targetPositionC, targetPositionD, playerPositions, remainningTime, currentScore)
+        screen = self.drawNewState(targetPositions, playerPositions, remainningTime, currentScore)
 
         results = co.OrderedDict()
         results["trialIndex"] = trialIndex
@@ -99,9 +99,9 @@ class HumanController():
 
 
             #  single model with naive infer
-            action3 = np.array(self.chooseGreedyAction(self.sheepPolicy[0](np.array(targetPositionA )* 10 , np.array(playerPositions )* 10)))/ 20
+            action3 = np.array(self.chooseGreedyAction(self.sheepPolicy[0](np.array(targetPositions[0] )* 10 , np.array(playerPositions )* 10)))/ 20
 
-            action4 = np.array(self.chooseGreedyAction(self.sheepPolicy[1]((np.array(targetPositionB) * 10, np.array(playerPositions[0]) * 10, np.array(playerPositions[1]) * 10)))) / 20
+            action4 = np.array(self.chooseGreedyAction(self.sheepPolicy[1]((np.array(targetPositions[1]) * 10, np.array(playerPositions[0]) * 10, np.array(playerPositions[1]) * 10)))) / 20
 
             # action4 = [0,0]
 
@@ -111,14 +111,15 @@ class HumanController():
 
 
 
-            targetPositionA = self.stayInBoundary(np.add(targetPositionA, action3))
-            targetPositionB = self.stayInBoundary(np.add(targetPositionB, action4))
+            targetPositions[0] = self.stayInBoundary(np.add(targetPositions[0], action3))
+            targetPositions[1] = self.stayInBoundary(np.add(targetPositions[1], action4))
             playerPositions = [self.stayInBoundary(np.add(playerPosition, action)) for playerPosition, action in zip(playerPositions, [action1, action2])]
 
             remainningTime = max(0, self.finishTime - newStopwatch)
-            screen = self.drawNewState(targetPositionA, targetPositionB, targetPositionC, targetPositionD,playerPositions, remainningTime, currentScore)
+            
+            screen = self.drawNewState(targetPositions,playerPositions, remainningTime, currentScore)
             pg.display.update()
-        return targetPositionA, targetPositionB, targetPositionC, targetPositionD, playerPositions, action, newStopwatch, screen
+        return targetPositions, playerPositions, action, newStopwatch, screen
 
 
 def calculateSoftmaxProbability(probabilityList, beita):

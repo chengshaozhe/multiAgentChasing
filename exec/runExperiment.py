@@ -12,7 +12,7 @@ from src.visualization import DrawBackground, DrawNewState, DrawImage, GiveExper
 from src.controller import HumanController, ModelController
 from src.updateWorld import InitialWorld, UpdateWorld, StayInBoundary
 from src.writer import WriteDataFrameToCSV
-from src.trial import Trial,AttributionTrail
+from src.trial import Trial,AttributionTrail,isAnyKilled,CheckEaten,CheckTerminationOfTrial
 from src.experiment import Experiment
 from src.sheepPolicy import GenerateModel, restoreVariables, ApproximatePolicy, chooseGreedyAction, sampleAction, SoftmaxAction
 
@@ -29,7 +29,7 @@ def main():
 
     screenWidth = 800
     screenHeight = 800
-
+    screenCenter=[screenWidth/2,screenHeight/2]
     fullScreen = False
     initializeScreen = InitializeScreen(screenWidth, screenHeight, fullScreen)
     screen = initializeScreen()
@@ -73,10 +73,10 @@ def main():
     introductionImage = pg.transform.scale(introductionImage, (screenWidth, screenHeight))
     finishImage = pg.transform.scale(finishImage, (int(screenWidth * 2 / 3), int(screenHeight / 4)))
 
-    drawBackground = DrawBackground(screen, gridSize, leaveEdgeSpace, backgroundColor, lineColor, lineWidth, textColorTuple)
+    drawBackground = DrawBackground(screen, gridSize, leaveEdgeSpace, backgroundColor, lineColor, lineWidth, textColorTuple,playerColors)
     drawNewState = DrawNewState(screen, drawBackground, targetColor, playerColors, targetRadius, playerRadius)
     drawImage = DrawImage(screen)
-    drawAttributionTrail=DrawAttributionTrail(screen,playerColors,totalBarLength,barHeight)
+    drawAttributionTrail=DrawAttributionTrail(screen,playerColors,totalBarLength,barHeight,screenCenter)
     saveImageDir = os.path.join(os.path.join(os.path.abspath(os.path.join(os.getcwd(), os.pardir)), 'data'), experimentValues["name"])
 
     xBoundary = [bounds[0], bounds[2]]
@@ -121,6 +121,10 @@ def main():
     # ## mcts sheep
     # from mcts import sheepMCTS
     # sheepPolicy = sheepMCTS()
+    checkTerminationOfTrial=CheckTerminationOfTrial(finishTime)
+    checkEaten=CheckEaten(killzone,isAnyKilled)
+    totalScore=10
+    attributionTrail=AttributionTrail(totalScore,drawAttributionTrail)
 
     sheepPolicy = [sheepPolicySingle,sheepPolicyMulti]
     softMaxBeta = 30
@@ -130,9 +134,8 @@ def main():
     # modelController = ModelController(policy, gridSize, stopwatchEvent, stopwatchUnit, drawNewState, finishTime, softmaxBeita)
 
     actionSpace = list(it.product([0, 1, -1], repeat=2))
-    totalScore=10
-    attributionTrail=AttributionTrail(totalScore,drawAttributionTrail)
-    trial = Trial(humanController, actionSpace, killzone, drawNewState, stopwatchEvent, finishTime,attributionTrail)
+
+    trial = Trial( actionSpace, killzone, stopwatchEvent,drawNewState,  checkTerminationOfTrial,checkEaten,attributionTrail,humanController)
     experiment = Experiment(trial, writer, experimentValues, initialWorld, updateWorld, drawImage, resultsPath)
     giveExperimentFeedback = GiveExperimentFeedback(screen, textColorTuple, screenWidth, screenHeight)
 

@@ -49,14 +49,13 @@ class GiveExperimentFeedback():
     def __call__(self, trialIndex, score):
         self.screen.fill((0, 0, 0))
         for j in range(trialIndex + 1):
-            drawText(self.screen, "No. " + str(j + 1) + " experiment" + "  score: " + str(score[j]), self.textColorTuple,
-                     (self.screenWidth / 5, self.screenHeight * (j + 3) / 12))
+            drawText(self.screen, "No. " + str(j + 1) + " experiment" + "  score: " + str(score[j]), self.textColorTuple,(self.screenWidth / 5, self.screenHeight * (j + 3) / 12))
         pg.display.flip()
         pg.time.wait(3000)
 
 
 class DrawBackground():
-    def __init__(self, screen, gridSize, leaveEdgeSpace, backgroundColor, lineColor, lineWidth, textColorTuple):
+    def __init__(self, screen, gridSize, leaveEdgeSpace, backgroundColor, lineColor, lineWidth, textColorTuple,playerColors):
         self.screen = screen
         self.gridSize = gridSize
         self.leaveEdgeSpace = leaveEdgeSpace
@@ -66,22 +65,23 @@ class DrawBackground():
         self.lineColor = lineColor
         self.lineWidth = lineWidth
         self.textColorTuple = textColorTuple
-
+        self.playerColors=playerColors
     def __call__(self, currentTime, currentScore):
         self.screen.fill((0, 0, 0))
         pg.draw.rect(self.screen, self.backgroundColor, pg.Rect(np.int(self.leaveEdgeSpace * self.widthLineStepSpace), np.int(self.leaveEdgeSpace * self.heightLineStepSpace), np.int(self.gridSize * self.widthLineStepSpace), np.int(self.gridSize * self.heightLineStepSpace)))
 
         seconds = currentTime / 1000
         drawText(self.screen, 'Time: ' + str("%4.1f" % seconds) + 's', THECOLORS['white'], (self.widthLineStepSpace * 15, self.leaveEdgeSpace * 3))
-        drawText(self.screen, 'Score: ' + str(currentScore), self.textColorTuple, (self.widthLineStepSpace * 50, self.leaveEdgeSpace * 3))
+        drawText(self.screen, 'PlayerOneScore: ' + str(currentScore[0]), self.playerColors[0], (self.widthLineStepSpace * 35, self.leaveEdgeSpace * 3))
+        drawText(self.screen, 'PlayerTwoScore: ' + str(currentScore[1]), self.playerColors[1], (self.widthLineStepSpace * 50, self.leaveEdgeSpace * 3))
         return
 
 
 class DrawNewState():
-    def __init__(self, screen, drawBackground, targetColor, playerColors, targetRadius, playerRadius):
+    def __init__(self, screen, drawBackground, targetColors, playerColors, targetRadius, playerRadius):
         self.screen = screen
         self.drawBackground = drawBackground
-        self.targetColor = targetColor
+        self.targetColors = targetColors
         self.playerColors = playerColors
         self.targetRadius = targetRadius
         self.playerRadius = playerRadius
@@ -89,14 +89,12 @@ class DrawNewState():
         self.widthLineStepSpace = drawBackground.widthLineStepSpace
         self.heightLineStepSpace = drawBackground.heightLineStepSpace
 
-    def __call__(self, targetPositionA, targetPositionB, targetPositionC, targetPositionD, playerPositions, currentTime, currentScore):
+    def __call__(self, targetPositions, playerPositions, currentTime, currentScore):
         self.drawBackground(currentTime, currentScore)
-        pg.draw.circle(self.screen, self.targetColor[0], [np.int((targetPositionA[0] + self.leaveEdgeSpace + 0.5) * self.widthLineStepSpace), np.int((targetPositionA[1] + self.leaveEdgeSpace + 0.5) * self.heightLineStepSpace)], self.targetRadius)
-
-        pg.draw.circle(self.screen, self.targetColor[1], [np.int((targetPositionB[0] + self.leaveEdgeSpace + 0.5) * self.widthLineStepSpace), np.int((targetPositionB[1] + self.leaveEdgeSpace + 0.5) * self.heightLineStepSpace)], self.targetRadius + 2)
-        pg.draw.circle(self.screen, self.targetColor[2], [np.int((targetPositionC[0] + self.leaveEdgeSpace + 0.5) * self.widthLineStepSpace), np.int((targetPositionC[1] + self.leaveEdgeSpace + 0.5) * self.heightLineStepSpace)], self.targetRadius)
-        pg.draw.circle(self.screen, self.targetColor[3], [np.int((targetPositionD[0] + self.leaveEdgeSpace + 0.5) * self.widthLineStepSpace), np.int((targetPositionD[1] + self.leaveEdgeSpace + 0.5) * self.heightLineStepSpace)], self.targetRadius)
-
+ 
+        for targetPosition, targetColor in zip(targetPositions, self.targetColors):
+            pg.draw.circle(self.screen, targetColor, [np.int((playerPosition[0] + self.leaveEdgeSpace + 0.5) * self.widthLineStepSpace), np.int((targetPosition[1] + self.leaveEdgeSpace + 0.5) * self.heightLineStepSpace)], self.targetRadius)
+ 
         for playerPosition, playerColor in zip(playerPositions, self.playerColors):
             pg.draw.circle(self.screen, playerColor, [np.int((playerPosition[0] + self.leaveEdgeSpace + 0.5) * self.widthLineStepSpace), np.int((playerPosition[1] + self.leaveEdgeSpace + 0.5) * self.heightLineStepSpace)], self.playerRadius)
         return self.screen
@@ -126,10 +124,10 @@ class DrawImage():
         pg.event.set_blocked([pg.KEYDOWN, pg.KEYUP, pg.QUIT])
 
 class DrawAttributionTrail:
-    def __init__(self, screen,playerColors,totalBarLength,barHeight):
+    def __init__(self, screen,playerColors,totalBarLength,barHeight,screenCenter):
         self.screen = screen
         self.playerColors=playerColors
-        self.screenCenter =[400,400]
+        self.screenCenter =screenCenter
         self.totalBarLength=totalBarLength
         self.barHeight=barHeight
 
