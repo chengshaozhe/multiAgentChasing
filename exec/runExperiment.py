@@ -20,7 +20,7 @@ from src.sheepPolicy import GenerateModel, restoreVariables, ApproximatePolicy, 
 def main():
     gridSize = 60
     bounds = [0, 0, gridSize - 1, gridSize - 1]
-    minDistanceForReborn = 30
+    minDistanceForReborn = 5
     condition = [-5, -3, -1, 0, 1, 3, 5]
     counter = [0] * len(condition)
     numPlayers = 4
@@ -34,7 +34,7 @@ def main():
     initializeScreen = InitializeScreen(screenWidth, screenHeight, fullScreen)
     screen = initializeScreen()
 
-    leaveEdgeSpace = 10
+    leaveEdgeSpace = 4
     lineWidth = 1
     backgroundColor = THECOLORS['grey']  # [205, 255, 204]
     lineColor = [0, 0, 0]
@@ -49,9 +49,9 @@ def main():
     textColorTuple = THECOLORS['green']
     stopwatchEvent = pg.USEREVENT + 1
 
-    saveImage = False
-    killzone = 3
-    wolfSpeedRatio = 0.8
+    saveImage = True
+    killzone = 2
+    wolfSpeedRatio = 1
 
     pg.time.set_timer(stopwatchEvent, stopwatchUnit)
     pg.event.set_allowed([pg.KEYDOWN, pg.QUIT, stopwatchEvent])
@@ -60,7 +60,7 @@ def main():
     resultsPath = os.path.abspath(os.path.join(os.path.join(os.getcwd(), os.pardir), 'results'))
     experimentValues = co.OrderedDict()
     # experimentValues["name"] = input("Please enter your name:").capitalize()
-    experimentValues["name"] = 'test'
+    experimentValues["name"] = 'naiveSingleNoStillMulti'
     experimentValues["condition"] = 'all'
     writerPath = os.path.join(resultsPath, experimentValues["name"]) + '.csv'
     writer = WriteDataFrameToCSV(writerPath)
@@ -80,31 +80,46 @@ def main():
     yBoundary = [bounds[1], bounds[3]]
     stayInBoundary = StayInBoundary(xBoundary, yBoundary)
 ############
-    sheepActionSpace = [(10, 0), (7, 7), (0, 10), (-7, 7), (-10, 0), (-7, -7), (0, -10), (7, -7)]
+    actionSpace = [(10, 0), (7, 7), (0, 10), (-7, 7), (-10, 0), (-7, -7), (0, -10), (7, -7)]
+    preyPowerRatio = 3
+    sheepActionSpace = list(map(tuple, np.array(actionSpace) * preyPowerRatio))
+    sheepActionSpace.append((0,0))
     numActionSpace = len(sheepActionSpace)
+
+    actionSpaceStill = [(10, 0), (7, 7), (0, 10), (-7, 7), (-10, 0), (-7, -7), (0, -10), (7, -7)]
+    sheepActionSpaceStill = list(map(tuple, np.array(actionSpaceStill) * preyPowerRatio))
+    sheepActionSpaceStill.append((0,0))
+    numActionSpaceStill = len(sheepActionSpaceStill)
 
     regularizationFactor = 1e-4
     sharedWidths = [128]
     actionLayerWidths = [128]
     valueLayerWidths = [128]
-
+    resBlockSize = 2
+    dropoutRate = 0.0
+    initializationMethod = 'uniform'
+    depth = 5
     generateSheepModelSingle = GenerateModel(4, numActionSpace, regularizationFactor)
-    generateSheepModelMulti = GenerateModel(6, numActionSpace, regularizationFactor)
-
-    initSheepNNModelSingle = generateSheepModelSingle(sharedWidths * 4, actionLayerWidths, valueLayerWidths)
-    initSheepNNModelMulti = generateSheepModelMulti(sharedWidths * 4, actionLayerWidths, valueLayerWidths)
-
-    sheepPreTrainModelPathSingle = os.path.join('..', 'trainedModelsSingle', 'agentId=0_depth=4_learningRate=0.0001_maxRunningSteps=60_miniBatchSize=256_numSimulations=100_trainSteps=90000')
-
-    sheepPreTrainModelPathMulti = os.path.join('..', 'trainedModelsMulti', 'agentId=0_depth=4_learningRate=0.0001_maxRunningSteps=60_miniBatchSize=256_numSimulations=100_trainSteps=90000')
-
+    generateSheepModelMulti = GenerateModel(6, numActionSpaceStill, regularizationFactor)
+    initSheepNNModelSingle = generateSheepModelSingle(sharedWidths * depth, actionLayerWidths, valueLayerWidths, resBlockSize,initializationMethod, dropoutRate)
+    initSheepNNModelMulti= generateSheepModelMulti(sharedWidths * depth, actionLayerWidths, valueLayerWidths, resBlockSize,initializationMethod, dropoutRate)
+    sheepPreTrainModelPathSingle = os.path.join('..', 'trainedModelsSingle', 'agentId=0_dataSize=5000_depth=5_learningRate=0.0001_maxRunningSteps=150_miniBatchSize=256_numSimulations=100_sampleOneStepPerTraj=0_trainSteps=50000')
+    sheepPreTrainModelPathMulti = os.path.join('..', 'trainedModelsMulti', 'agentId=0_depth=5_learningRate=0.0001_maxRunningSteps=150_miniBatchSize=256_numSimulations=200_trainSteps=50000')
     sheepPreTrainModelSingle = restoreVariables(initSheepNNModelSingle, sheepPreTrainModelPathSingle)
     sheepPreTrainModelMulti = restoreVariables(initSheepNNModelMulti, sheepPreTrainModelPathMulti)
 
-    sheepPolicySingle = ApproximatePolicy(sheepPreTrainModelSingle, sheepActionSpace)
-    sheepPolicyMulti = ApproximatePolicy(sheepPreTrainModelMulti, sheepActionSpace)
+    sheepPolicySingleModel = ApproximatePolicy(sheepPreTrainModelSingle, sheepActionSpace)
+    sheepPolicyMulti = ApproximatePolicy(sheepPreTrainModelMulti, sheepActionSpaceStill)
 
-    sheepPolicy = sheepPolicyMulti
+    from src.sheepPolicy import SingleChasingPolicy,inferNearestWolf
+    sheepPolicySingle = SingleChasingPolicy(sheepPolicySingleModel,inferNearestWolf)
+    # sheepPolicySingle = sheepPolicySingleModel
+
+    # ## mcts sheep
+    # from mcts import sheepMCTS
+    # sheepPolicy = sheepMCTS()
+
+    sheepPolicy = [sheepPolicySingle,sheepPolicyMulti]
     softMaxBeta = 30
     softmaxAction = SoftmaxAction(softMaxBeta)
     humanController = HumanController(writer, gridSize, stopwatchEvent, stopwatchUnit, wolfSpeedRatio, drawNewState, finishTime, stayInBoundary, saveImage, saveImageDir, sheepPolicy, chooseGreedyAction)

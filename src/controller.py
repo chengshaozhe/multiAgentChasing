@@ -85,19 +85,26 @@ class HumanController():
             action1 = np.array(action[0]) * self.wolfSpeedRatio
             action2 = np.array(action[1]) * self.wolfSpeedRatio
 
-            playerPositions = [self.stayInBoundary(np.add(playerPosition, action)) for playerPosition, action in zip(playerPositions, [action1, action2])]
 
-            action3 = np.array(self.chooseGreedyAction(self.sheepPolicy((np.array(targetPositionA) * 10, np.array(playerPositions[0]) * 10, np.array(playerPositions[1]) * 10)))) / 8
+            # action3 = np.array(self.chooseGreedyAction(self.sheepPolicy[0]((np.array(targetPositionA) * 10, np.array(playerPositions[0]) * 10)))) / 20
 
-            # action3 = np.array(self.chooseGreedyAction(self.sheepPolicy((np.array(targetPositionA) * 10, np.array(playerPositions[0]) * 10)))) / 7
 
-            action4 = np.array(self.chooseGreedyAction(self.sheepPolicy((np.array(targetPositionA) * 10, np.array(playerPositions[0]) * 10, np.array(playerPositions[1]) * 10)))) / 8
+            #  single model with naive infer
+            action3 = np.array(self.chooseGreedyAction(self.sheepPolicy[0](np.array(targetPositionA )* 10 , np.array(playerPositions )* 10)))/ 20
 
-            # action3 = action[2]
-            # action4 = action[3]
+            action4 = np.array(self.chooseGreedyAction(self.sheepPolicy[1]((np.array(targetPositionB) * 10, np.array(playerPositions[0]) * 10, np.array(playerPositions[1]) * 10)))) / 20
+
+            # action4 = [0,0]
+
+            # print(playerPositions)
+            # print(targetPositionA,action3)
+            # print(targetPositionB,action4)
+
+
 
             targetPositionA = self.stayInBoundary(np.add(targetPositionA, action3))
             targetPositionB = self.stayInBoundary(np.add(targetPositionB, action4))
+            playerPositions = [self.stayInBoundary(np.add(playerPosition, action)) for playerPosition, action in zip(playerPositions, [action1, action2])]
 
             remainningTime = max(0, self.finishTime - newStopwatch)
             screen = self.drawNewState(targetPositionA, targetPositionB, playerPositions, remainningTime, currentScore)
