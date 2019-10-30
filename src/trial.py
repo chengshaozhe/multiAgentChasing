@@ -9,25 +9,83 @@ from src.controller import HumanController, ModelController
 from src.updateWorld import InitialWorld
 import random
 
+class AttributionTrail:
+    def __init__(self,totalScore,drawAttributionTrail):
+        self.totalScore = totalScore
+        self.actionDict = [{ pg.K_LEFT: -1, pg.K_RIGHT: 1}, {pg.K_a: -1, pg.K_d: 1}]
+        self.comfirmDict=[pg.K_RETURN,pg.K_SPACE]
+        self.distributeUnit=0.1
+        self.drawAttributionTrail=drawAttributionTrail
+    def __call__(self,eatenFlag, hunterFlag):
+        hunterid=hunterFlag.index(True)
+        attributionScore=[0,0]
+        attributorPercent=0.5#
+        pause=True
+        self.drawAttributionTrail(hunterid,attributorPercent)
+        pg.event.set_allowed([pg.KEYDOWN])
+
+        attributionDelta=0
+        stayAttributionBoudray=lambda attributorPercent:max(min(attributorPercent,1),0)
+        while  pause:
+            for event in pg.event.get():
+                if event.type == pg.QUIT:
+                    pg.quit()
+                if event.type == pg.KEYDOWN:
+                    print(event.key)
+                    if event.key in self.actionDict[hunterid].keys():
+                        attributionDelta = self.actionDict[hunterid][event.key]*self.distributeUnit
+                        print(attributionDelta)
+
+                        attributorPercent=stayAttributionBoudray(attributorPercent+attributionDelta)
+
+                        self.drawAttributionTrail(hunterid,attributorPercent)
+                    elif event.key == self.comfirmDict[hunterid]:
+                        pause=False
+            pg.time.wait(10)
+            #!
+        recipentPercent=1-attributorPercent
+        if hunterid==0:
+            attributionScore=[self.totalScore*attributorPercent,self.totalScore*recipentPercent]
+        else:#hunterid=1
+            attributionScore=[self.totalScore*recipentPercent,self.totalScore*attributorPercent]
+
+        return attributionScore
+def calculateGridDistance(gridA, gridB):
+    return np.linalg.norm(np.array(gridA) - np.array(gridB), ord=2)
+
+
+def isAnyKilled(humanGrids, targetGrid, killzone):
+    return np.any(np.array([calculateGridDistance(humanGrid, targetGrid) for humanGrid in humanGrids]) < killzone)
 
 class Trial():
-    def __init__(self, humanController, actionSpace, killzone, drawNewState, stopwatchEvent, finishTime):
+    def __init__(self, humanController, actionSpace, killzone, drawNewState, stopwatchEvent, finishTime,attributionTrail):
         self.humanController = humanController
         self.actionSpace = actionSpace
         self.killzone = killzone
         self.drawNewState = drawNewState
         self.stopwatchEvent = stopwatchEvent
         self.finishTime = finishTime
-
-    def checkEaten(self, bean1Grid, bean2Grid, humanGrids):
-        if np.any(np.array([np.linalg.norm(np.array(humanGrid) - np.array(bean1Grid)) for humanGrid in humanGrids]) < self.killzone):
-            eatenFlag = [True, False]
-        elif np.any(np.array([np.linalg.norm(np.array(humanGrid) - np.array(bean2Grid)) for humanGrid in humanGrids]) < self.killzone):
-            eatenFlag = [False, True]
+        self.beanReward=1
+        self.attributionTrail=attributionTrail
+    def checkEaten(self, sheep1Grid, sheep2Grid, bean1Grid, bean2Grid, humanGrids):
+        if isAnyKilled(humanGrids, sheep1Grid, self.killzone):
+            eatenFlag = [True, False, False, False]
+        elif isAnyKilled(humanGrids, sheep2Grid, self.killzone):
+            eatenFlag = [False, True, False, False]
+        elif isAnyKilled(humanGrids, bean1Grid, self.killzone):
+            eatenFlag = [False, False, True, False]
+        elif isAnyKilled(humanGrids, bean2Grid, self.killzone):
+            eatenFlag = [False, False, False, True]
         else:
-            eatenFlag = [False, False]
-        return eatenFlag
+            eatenFlag = [False, False, False, False]
 
+        if isAnyKilled([sheep1Grid, sheep2Grid, bean1Grid, bean2Grid], humanGrids[0], self.killzone):
+            hunterFlag = [True, False]
+        elif isAnyKilled([sheep1Grid, sheep2Grid, bean1Grid, bean2Grid], humanGrids[1], self.killzone):
+            hunterFlag = [False, True]
+        else:
+            hunterFlag = [False, False]
+        return eatenFlag, hunterFlag
     def checkTerminationOfTrial(self, actionList, eatenFlag, currentStopwatch):
         for action in actionList:
             if np.any(eatenFlag) == True or action == pg.QUIT or currentStopwatch >= self.finishTime:
@@ -36,49 +94,41 @@ class Trial():
                 pause = True
         return pause
 
-    def __call__(self, bean1Grid, bean2Grid, playerGrid, score, currentStopwatch, trialIndex):
+    def __call__(self, sheep1Grid, sheep2Grid,bean1Grid, bean2Grid, playerGrid, score, currentStopwatch, trialIndex):
         initialPlayerGrid = playerGrid
         initialTime = time.get_ticks()
         pg.event.set_allowed([pg.KEYDOWN, pg.KEYUP, pg.QUIT, self.stopwatchEvent])
 
-        bean1Grid, bean2Grid, playerGrid, action, currentStopwatch, screen = self.humanController(bean1Grid, bean2Grid, playerGrid, score, currentStopwatch, trialIndex)
+        sheep1Grid, sheep2Grid,bean1Grid, bean2Grid, playerGrid, action, currentStopwatch, screen = self.humanController(sheep1Grid, sheep2Grid,bean1Grid, bean2Grid, playerGrid, score, currentStopwatch, trialIndex)
 
-        eatenFlag = self.checkEaten(bean1Grid, bean2Grid, playerGrid)
+        eatenFlag,hunterFlag = self.checkEaten(sheep1Grid, sheep2Grid,bean1Grid, bean2Grid, playerGrid)
         firstResponseTime = time.get_ticks() - initialTime
-        score = np.add(score, np.sum(eatenFlag))
+
         pause = self.checkTerminationOfTrial(action, eatenFlag, currentStopwatch)
         while pause:
-            bean1Grid, bean2Grid, playerGrid, action, currentStopwatch, screen = self.humanController(bean1Grid, bean2Grid, playerGrid, score, currentStopwatch, trialIndex)
-            eatenFlag = self.checkEaten(bean1Grid, bean2Grid, playerGrid)
-            score = np.add(score, np.sum(eatenFlag))
+            sheep1Grid, sheep2Grid,bean1Grid, bean2Grid, playerGrid, action, currentStopwatch, screen = self.humanController(sheep1Grid, sheep2Grid,bean1Grid, bean2Grid, playerGrid, score, currentStopwatch, trialIndex)
+            eatenFlag,hunterFlag = self.checkEaten(sheep1Grid, sheep2Grid,bean1Grid, bean2Grid, playerGrid)
             pause = self.checkTerminationOfTrial(action, eatenFlag, currentStopwatch)
         wholeResponseTime = time.get_ticks() - initialTime
         pg.event.set_blocked([pg.KEYDOWN, pg.KEYUP])
 
         results = co.OrderedDict()
 
-        # results["bean1GridX"] = bean1Grid[0]
-        # results["bean1GridY"] = bean1Grid[1]
-        # results["bean2GridX"] = bean2Grid[0]
-        # results["bean2GridY"] = bean2Grid[1]
-        # results["player1GridX"] = initialPlayerGrid[0][0]
-        # results["player1GridY"] = initialPlayerGrid[0][1]
-        # results["player2GridX"] = initialPlayerGrid[1][0]
-        # results["player2GridY"] = initialPlayerGrid[1][1]
-
-        if True in eatenFlag:
+        addSocre=[0,0]
+        if True in eatenFlag[:2]:
+            addSocre=self.attributionTrail( eatenFlag, hunterFlag)
             results["beanEaten"] = eatenFlag.index(True) + 1
-            oldGrid = eval('bean' + str(eatenFlag.index(False) + 1) + 'Grid')
-            # drawText(screen, 'caught!', THECOLORS['red'], (screen.get_width() / 2, screen.get_height() / 2))
-            # pg.display.update()
-            # pg.time.wait(2000)
+        elif True in eatenFlag:
+            results["beanEaten"] = eatenFlag.index(True) + 1
+            hunterId=hunterFlag.index(True)
+            addSocre[hunterId] =self.beanReward
+
         else:
             results["beanEaten"] = 0
-            oldGrid = None
         # results["firstResponseTime"] = firstResponseTime
         results["trialTime"] = wholeResponseTime
-
-        return results, [bean1Grid, bean2Grid], playerGrid, score, currentStopwatch, eatenFlag
+        score=np.add(score, addSocre)
+        return results, [sheep1Grid, sheep2Grid, bean1Grid, bean2Grid], playerGrid, score, currentStopwatch, eatenFlag
 
 
 def main():

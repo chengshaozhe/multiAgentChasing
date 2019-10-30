@@ -89,11 +89,13 @@ class DrawNewState():
         self.widthLineStepSpace = drawBackground.widthLineStepSpace
         self.heightLineStepSpace = drawBackground.heightLineStepSpace
 
-    def __call__(self, targetPositionA, targetPositionB, playerPositions, currentTime, currentScore):
+    def __call__(self, targetPositionA, targetPositionB, targetPositionC, targetPositionD, playerPositions, currentTime, currentScore):
         self.drawBackground(currentTime, currentScore)
         pg.draw.circle(self.screen, self.targetColor[0], [np.int((targetPositionA[0] + self.leaveEdgeSpace + 0.5) * self.widthLineStepSpace), np.int((targetPositionA[1] + self.leaveEdgeSpace + 0.5) * self.heightLineStepSpace)], self.targetRadius)
 
-        pg.draw.circle(self.screen, self.targetColor[1], [np.int((targetPositionB[0] + self.leaveEdgeSpace + 0.5) * self.widthLineStepSpace), np.int((targetPositionB[1] + self.leaveEdgeSpace + 0.5) * self.heightLineStepSpace)], self.targetRadius)
+        pg.draw.circle(self.screen, self.targetColor[1], [np.int((targetPositionB[0] + self.leaveEdgeSpace + 0.5) * self.widthLineStepSpace), np.int((targetPositionB[1] + self.leaveEdgeSpace + 0.5) * self.heightLineStepSpace)], self.targetRadius + 2)
+        pg.draw.circle(self.screen, self.targetColor[2], [np.int((targetPositionC[0] + self.leaveEdgeSpace + 0.5) * self.widthLineStepSpace), np.int((targetPositionC[1] + self.leaveEdgeSpace + 0.5) * self.heightLineStepSpace)], self.targetRadius)
+        pg.draw.circle(self.screen, self.targetColor[3], [np.int((targetPositionD[0] + self.leaveEdgeSpace + 0.5) * self.widthLineStepSpace), np.int((targetPositionD[1] + self.leaveEdgeSpace + 0.5) * self.heightLineStepSpace)], self.targetRadius)
 
         for playerPosition, playerColor in zip(playerPositions, self.playerColors):
             pg.draw.circle(self.screen, playerColor, [np.int((playerPosition[0] + self.leaveEdgeSpace + 0.5) * self.widthLineStepSpace), np.int((playerPosition[1] + self.leaveEdgeSpace + 0.5) * self.heightLineStepSpace)], self.playerRadius)
@@ -123,7 +125,27 @@ class DrawImage():
             pg.time.wait(10)
         pg.event.set_blocked([pg.KEYDOWN, pg.KEYUP, pg.QUIT])
 
+class DrawAttributionTrail:
+    def __init__(self, screen,playerColors,totalBarLength,barHeight):
+        self.screen = screen
+        self.playerColors=playerColors
+        self.screenCenter =[400,400]
+        self.totalBarLength=totalBarLength
+        self.barHeight=barHeight
 
+    def __call__(self, attributorId,attributorPercent):
+        print(attributorId)
+        recipentId=1-attributorId
+        attributorLen=int(self.totalBarLength*attributorPercent)
+
+        attributorRect=((self.screenCenter[0]-self.totalBarLength/2,self.screenCenter[1]-self.barHeight/2),(attributorLen,self.barHeight))
+        recipentRect=((self.screenCenter[0]-self.totalBarLength/2+attributorLen,self.screenCenter[1]-self.barHeight/2),(self.totalBarLength-attributorLen,self.barHeight))
+
+        pg.draw.rect(self.screen, self.playerColors[attributorId], attributorRect)
+        pg.draw.rect(self.screen, self.playerColors[recipentId], recipentRect)
+
+        pg.display.flip()
+        return self.screen
 if __name__ == "__main__":
     pg.init()
     screenWidth = 720

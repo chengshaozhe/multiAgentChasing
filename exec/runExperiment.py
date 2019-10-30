@@ -8,11 +8,11 @@ import numpy as np
 import pickle
 import pygame as pg
 from pygame.color import THECOLORS
-from src.visualization import DrawBackground, DrawNewState, DrawImage, GiveExperimentFeedback, InitializeScreen
+from src.visualization import DrawBackground, DrawNewState, DrawImage, GiveExperimentFeedback, InitializeScreen,DrawAttributionTrail
 from src.controller import HumanController, ModelController
 from src.updateWorld import InitialWorld, UpdateWorld, StayInBoundary
 from src.writer import WriteDataFrameToCSV
-from src.trial import Trial
+from src.trial import Trial,AttributionTrail
 from src.experiment import Experiment
 from src.sheepPolicy import GenerateModel, restoreVariables, ApproximatePolicy, chooseGreedyAction, sampleAction, SoftmaxAction
 
@@ -23,7 +23,7 @@ def main():
     minDistanceForReborn = 5
     condition = [-5, -3, -1, 0, 1, 3, 5]
     counter = [0] * len(condition)
-    numPlayers = 4
+    numPlayers = 2
     initialWorld = InitialWorld(bounds, numPlayers, minDistanceForReborn)
     updateWorld = UpdateWorld(bounds, condition, counter, minDistanceForReborn)
 
@@ -38,10 +38,12 @@ def main():
     lineWidth = 1
     backgroundColor = THECOLORS['grey']  # [205, 255, 204]
     lineColor = [0, 0, 0]
-    targetColor = [THECOLORS['blue'], (0, 168, 107)]  # [255, 50, 50]
+    targetColor = [THECOLORS['blue'],THECOLORS['blue'], (0, 168, 107),(0, 168, 107)]  # [255, 50, 50]
     playerColors = [THECOLORS['orange'], THECOLORS['red']]
     targetRadius = 10
     playerRadius = 10
+    totalBarLength=100
+    barHeight=20
     stopwatchUnit = 100
     finishTime = 1000 * 60 * 3
     block = 1
@@ -74,6 +76,7 @@ def main():
     drawBackground = DrawBackground(screen, gridSize, leaveEdgeSpace, backgroundColor, lineColor, lineWidth, textColorTuple)
     drawNewState = DrawNewState(screen, drawBackground, targetColor, playerColors, targetRadius, playerRadius)
     drawImage = DrawImage(screen)
+    drawAttributionTrail=DrawAttributionTrail(screen,playerColors,totalBarLength,barHeight)
     saveImageDir = os.path.join(os.path.join(os.path.abspath(os.path.join(os.getcwd(), os.pardir)), 'data'), experimentValues["name"])
 
     xBoundary = [bounds[0], bounds[2]]
@@ -127,7 +130,9 @@ def main():
     # modelController = ModelController(policy, gridSize, stopwatchEvent, stopwatchUnit, drawNewState, finishTime, softmaxBeita)
 
     actionSpace = list(it.product([0, 1, -1], repeat=2))
-    trial = Trial(humanController, actionSpace, killzone, drawNewState, stopwatchEvent, finishTime)
+    totalScore=10
+    attributionTrail=AttributionTrail(totalScore,drawAttributionTrail)
+    trial = Trial(humanController, actionSpace, killzone, drawNewState, stopwatchEvent, finishTime,attributionTrail)
     experiment = Experiment(trial, writer, experimentValues, initialWorld, updateWorld, drawImage, resultsPath)
     giveExperimentFeedback = GiveExperimentFeedback(screen, textColorTuple, screenWidth, screenHeight)
 

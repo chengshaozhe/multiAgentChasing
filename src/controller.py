@@ -23,19 +23,23 @@ class HumanController():
         self.sheepPolicy = sheepPolicy
         self.chooseGreedyAction = chooseGreedyAction
 
-    def __call__(self, targetPositionA, targetPositionB, playerPositions, currentScore, currentStopwatch, trialIndex):
+    def __call__(self, targetPositionA, targetPositionB,targetPositionC, targetPositionD, playerPositions, currentScore, currentStopwatch, trialIndex):
         newStopwatch = currentStopwatch
         remainningTime = max(0, self.finishTime - currentStopwatch)
 
-        screen = self.drawNewState(targetPositionA, targetPositionB, playerPositions, remainningTime, currentScore)
+        screen = self.drawNewState(targetPositionA, targetPositionB,targetPositionC, targetPositionD, playerPositions, remainningTime, currentScore)
 
         results = co.OrderedDict()
         results["trialIndex"] = trialIndex
         results["timeStep"] = self.stopwatch
-        results["bean1GridX"] = targetPositionA[0]
+        results["sheep1GridX"] = targetPositionA[0]
         results["bean1GridY"] = targetPositionA[1]
         results["bean2GridX"] = targetPositionB[0]
         results["bean2GridY"] = targetPositionB[1]
+        results["bean1GridX"] = targetPositionC[0]
+        results["sheep1GridY"] = targetPositionC[1]
+        results["sheep2GridX"] = targetPositionD[0]
+        results["sheep2GridY"] = targetPositionD[1]
         results["player1GridX"] = playerPositions[0][0]
         results["player1GridY"] = playerPositions[0][1]
         results["player2GridX"] = playerPositions[1][0]
@@ -54,6 +58,11 @@ class HumanController():
         joystickCount = pg.joystick.get_count()
 
         pause = True
+
+        action1 = [0, 0]
+        action2 = [0, 0]
+        action3 = [0, 0]
+        action4 = [0, 0]
         while pause:
             for event in pg.event.get():
                 if event.type == pg.QUIT:
@@ -107,9 +116,9 @@ class HumanController():
             playerPositions = [self.stayInBoundary(np.add(playerPosition, action)) for playerPosition, action in zip(playerPositions, [action1, action2])]
 
             remainningTime = max(0, self.finishTime - newStopwatch)
-            screen = self.drawNewState(targetPositionA, targetPositionB, playerPositions, remainningTime, currentScore)
+            screen = self.drawNewState(targetPositionA, targetPositionB, targetPositionC, targetPositionD,playerPositions, remainningTime, currentScore)
             pg.display.update()
-        return targetPositionA, targetPositionB, playerPositions, action, newStopwatch, screen
+        return targetPositionA, targetPositionB, targetPositionC, targetPositionD, playerPositions, action, newStopwatch, screen
 
 
 def calculateSoftmaxProbability(probabilityList, beita):
