@@ -14,10 +14,11 @@ class Experiment():
         trialIndex = 0
         score =np.array ([0,0])
         currentStopwatch = 0
+        timeStepforDraw=0
         while True:
             print('trialIndex', trialIndex)
             response = self.experimentValues.copy()
-            results, targetPositions, playerGrid, score, currentStopwatch, eatenFlag = self.trial(targetPositions, playerGrid, score, currentStopwatch, trialIndex)
+            results, targetPositions, playerGrid, score, currentStopwatch, eatenFlag,timeStepforDraw = self.trial(targetPositions, playerGrid, score, currentStopwatch, trialIndex,timeStepforDraw)
             response.update(results)
             self.writer(response, trialIndex)
             if currentStopwatch >= finishTime:

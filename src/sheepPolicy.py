@@ -2,8 +2,63 @@
 
 import tensorflow as tf
 import numpy as np
+import scipy.stats as stats
 import random
 import os
+
+class ComputeLikelihoodByHeatSeeking:
+
+    def __init__(self,baseProb,assumePrecision):
+
+        self.baseProb=baseProb
+        self.assumePrecision=assumePrecision
+    def __call__(self,vector1, vector2):
+        if np.linalg.norm(vector1, ord=2)==0 or np.linalg.norm(vector2, ord=2)==0 :
+            return self.baseProb
+        else:
+            deviationAngle = abs(np.angle(complex(vector1[0], vector1[1]) / complex(vector2[0], vector2[1])))
+            pLikelihood = (1-stats.vonmises.cdf(deviationAngle, self.assumePrecision))*2
+            return pLikelihood
+class InferCurrentWolf:
+    def __init__(self, computeLikelihoodByHeatSeeking):
+        self.computeLikelihoodByHeatSeeking = computeLikelihoodByHeatSeeking
+        self.wolvesID=[2,3]
+
+    def __call__(self,sheepId,dequeState):
+
+        goal =[False]*len(self.wolvesID)
+        for (i,wolfId) in enumerate(self.wolvesID):
+            heatSeekingVectorList= [dequeState[i - 1][sheepId] - dequeState[i - 1][wolfId] for i in range(1, len(dequeState))]
+            wolfVectorList = [dequeState[i][wolfId] - dequeState[i - 1][wolfId]for i in range(1, len(dequeState))]
+            pLikelihoodList=np.array([self.computeLikelihoodByHeatSeeking(v1,v2) for v1 ,v2 in zip(heatSeekingVectorList,wolfVectorList)])
+            pLikeliMean=np.mean(pLikelihoodList)
+            print(sheepId,wolfId,pLikeliMean)
+            goal[i]=0<pLikeliMean
+        return goal
+
+class BeliefPolicy:
+    def __init__(self,passerbyPolicy,singlePolicy,multiPolicy,inferCurrentWolf):
+        self.passerbyPolicy=passerbyPolicy
+        self.singlePolicy=singlePolicy
+        self.multiPolicy=multiPolicy
+        self.inferCurrentWolf=inferCurrentWolf
+
+    def __call__(self,sheepId,dequeState):
+        goal=self.inferCurrentWolf(sheepId,dequeState)
+
+        currentState=dequeState[-1]
+        print(sheepId,goal)
+        if goal==[True,True]:
+            policyForCurrentStateDict= self.multiPolicy((currentState[sheepId],currentState[2],currentState[3]))
+        elif goal==[True,False]:
+            policyForCurrentStateDict= self.singlePolicy((currentState[sheepId],currentState[2]))
+        elif goal==[False,True]:
+            policyForCurrentStateDict= self.singlePolicy((currentState[sheepId],currentState[3]))
+        elif goal==[False,False]:
+            policyForCurrentStateDict= self.passerbyPolicy(currentState[sheepId],currentState[2:])
+
+        return policyForCurrentStateDict
+
 
 class SingleChasingPolicy:
     def __init__(self,singlePolicy,inferNearestWolf):

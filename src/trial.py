@@ -8,20 +8,22 @@ from src.visualization import DrawBackground, DrawNewState, DrawImage, drawText
 from src.controller import HumanController, ModelController
 from src.updateWorld import InitialWorld
 import random
-
+import os
 class AttributionTrail:
-    def __init__(self,totalScore,drawAttributionTrail):
+    def __init__(self,totalScore,saveImageDir,saveImage,drawAttributionTrail):
         self.totalScore = totalScore
         self.actionDict = [{ pg.K_LEFT: -1, pg.K_RIGHT: 1}, {pg.K_a: -1, pg.K_d: 1}]
         self.comfirmDict=[pg.K_RETURN,pg.K_SPACE]
         self.distributeUnit=0.1
         self.drawAttributionTrail=drawAttributionTrail
-    def __call__(self,eatenFlag, hunterFlag):
+        self.saveImageDir=saveImageDir
+        self.saveImage=saveImage
+    def __call__(self,eatenFlag, hunterFlag,timeStepforDraw):
         hunterid=hunterFlag.index(True)
         attributionScore=[0,0]
         attributorPercent=0.5#
         pause=True
-        self.drawAttributionTrail(hunterid,attributorPercent)
+        screen=self.drawAttributionTrail(hunterid,attributorPercent)
         pg.event.set_allowed([pg.KEYDOWN])
 
         attributionDelta=0
@@ -38,18 +40,23 @@ class AttributionTrail:
 
                         attributorPercent=stayAttributionBoudray(attributorPercent+attributionDelta)
 
-                        self.drawAttributionTrail(hunterid,attributorPercent)
+                        screen=self.drawAttributionTrail(hunterid,attributorPercent)
                     elif event.key == self.comfirmDict[hunterid]:
                         pause=False
             pg.time.wait(10)
-            #!
+            if self.saveImage == True:
+                if not os.path.exists(self.saveImageDir):
+                    os.makedirs(self.saveImageDir)
+                pg.image.save(screen, self.saveImageDir + '/' + format(timeStepforDraw, '04') + ".png")
+                timeStepforDraw += 1
+
         recipentPercent=1-attributorPercent
         if hunterid==0:
-            attributionScore=[self.totalScore*attributorPercent,self.totalScore*recipentPercent]
+            attributionScore=[int(self.totalScore*attributorPercent),int(self.totalScore*recipentPercent)]
         else:#hunterid=1
-            attributionScore=[self.totalScore*recipentPercent,self.totalScore*attributorPercent]
+            attributionScore=[int(self.totalScore*recipentPercent),int(self.totalScore*attributorPercent)]
 
-        return attributionScore
+        return attributionScore,timeStepforDraw
 def calculateGridDistance(gridA, gridB):
     return np.linalg.norm(np.array(gridA) - np.array(gridB), ord=2)
 
@@ -65,44 +72,18 @@ class  CheckEaten:
         hunterFlag=[False]*len(targetPositions)
         for (i,targetPosition) in enumerate(targetPositions):
             if self.isAnyKilled(playerPositions, targetPosition, self.killzone):
-                eatenFlag [i]= True 
+                eatenFlag [i]= True
                 break
         for (i,playerPosition) in enumerate(playerPositions):
             if self.isAnyKilled(targetPositions, playerPosition, self.killzone):
-                hunterFlag [i]= True 
+                hunterFlag [i]= True
                 break
         return eatenFlag, hunterFlag
-# def checkEaten(killzone,targetPositions, playerPositions):
 
-#     eatenFlag=[False]*len(targetPositions)
-#     hunterFlag=[False]*len(targetPositions)
-#     for (i,targetPosition) in enumerate(targetPositions):
-#         if isAnyKilled(playerPositions, targetPosition, killzone):
-#             eatenFlag [i]= True 
-#     for (i,playerPosition) in enumerate(playerPositions):
-#         if isAnyKilled(targetPositions, playerPosition, killzone):
-#             hunterFlag [i]= True         
-    # if isAnyKilled(playerPositions, targetPositions[0], self.killzone):
-    #     eatenFlag = [True, False, False, False]
-    # elif isAnyKilled(playerPositions, targetPositions[1], self.killzone):
-    #     eatenFlag = [False, True, False, False]
-    # elif isAnyKilled(playerPositions, targetPositions[2], self.killzone):
-    #     eatenFlag = [False, False, True, False]
-    # elif isAnyKilled(playerPositions, targetPositions[3], self.killzone):
-    #     eatenFlag = [False, False, False, True]
-    # else:
-    # #     eatenFlag = [False, False, False, False]
-    # if isAnyKilled(targetPositions, playerPositions[0], self.killzone):
-    #     hunterFlag = [True, False]
-    # elif isAnyKilled(targetPositions, playerPositions[1], self.killzone):
-    #     hunterFlag = [False, True]
-    # else:
-    #     hunterFlag = [False, False]
-    return eatenFlag, hunterFlag
 class CheckTerminationOfTrial:
     def __init__(self,finishTime ):
         self.finishTime = finishTime
-    def __call__(self, actionList, eatenFlag, currentStopwatch)
+    def __call__(self, actionList, eatenFlag, currentStopwatch):
         for action in actionList:
             if np.any(eatenFlag) == True or action == pg.QUIT or currentStopwatch >= self.finishTime:
                 pause = False
@@ -116,53 +97,23 @@ class Trial():
         self.killzone = killzone
         self.drawNewState = drawNewState
         self.stopwatchEvent = stopwatchEvent
-        # self.finishTime = finishTime
         self.beanReward=1
         self.attributionTrail=attributionTrail
         self.checkEaten=checkEaten
         self.checkTerminationOfTrial=checkTerminationOfTrial
-    # def checkEaten(self, targetPositions, humanGrids):
+        self.memorySize=25
 
-
-    #     if isAnyKilled(humanGrids, targetPositions[0], self.killzone):
-    #         eatenFlag = [True, False, False, False]
-    #     elif isAnyKilled(humanGrids, targetPositions[1], self.killzone):
-    #         eatenFlag = [False, True, False, False]
-    #     elif isAnyKilled(humanGrids, targetPositions[2], self.killzone):
-    #         eatenFlag = [False, False, True, False]
-    #     elif isAnyKilled(humanGrids, targetPositions[3], self.killzone):
-    #         eatenFlag = [False, False, False, True]
-    #     else:
-    #         eatenFlag = [False, False, False, False]
-
-    #     if isAnyKilled(targetPositions, humanGrids[0], self.killzone):
-    #         hunterFlag = [True, False]
-    #     elif isAnyKilled(targetPositions, humanGrids[1], self.killzone):
-    #         hunterFlag = [False, True]
-    #     else:
-    #         hunterFlag = [False, False]
-    #     return eatenFlag, hunterFlag
-    # def checkTerminationOfTrial(self, actionList, eatenFlag, currentStopwatch):
-    #     for action in actionList:
-    #         if np.any(eatenFlag) == True or action == pg.QUIT or currentStopwatch >= self.finishTime:
-    #             pause = False
-    #         else:
-    #             pause = True
-    #     return pause
-
-    def __call__(self, targetPositions, playerPositions, score, currentStopwatch, trialIndex):
-        initialplayerPositions = playerPositions
+    def __call__(self, targetPositions, playerPositions, score, currentStopwatch, trialIndex,timeStepforDraw):
         initialTime = time.get_ticks()
         pg.event.set_allowed([pg.KEYDOWN, pg.KEYUP, pg.QUIT, self.stopwatchEvent])
 
-        targetPositions, playerPositions, action, currentStopwatch, screen = self.humanController(targetPositions, playerPositions, score, currentStopwatch, trialIndex)
 
-        eatenFlag,hunterFlag = self.checkEaten(targetPositions, playerPositions)
-        firstResponseTime = time.get_ticks() - initialTime
-
-        pause = self.checkTerminationOfTrial(action, eatenFlag, currentStopwatch)
+        from collections import deque
+        dequeState=deque(maxlen=self.memorySize)
+        pause = True
         while pause:
-            targetPositions, playerPositions, action, currentStopwatch, screen = self.humanController(targetPositions, playerPositions, score, currentStopwatch, trialIndex)
+            dequeState.append([np.array(targetPositions[0]), (targetPositions[1]),(playerPositions[0]), (playerPositions[1])])
+            targetPositions, playerPositions, action, currentStopwatch, screen ,timeStepforDraw= self.humanController(targetPositions, playerPositions, score, currentStopwatch, trialIndex,timeStepforDraw,dequeState)
             eatenFlag,hunterFlag = self.checkEaten(targetPositions, playerPositions)
             pause = self.checkTerminationOfTrial(action, eatenFlag, currentStopwatch)
         wholeResponseTime = time.get_ticks() - initialTime
@@ -172,7 +123,7 @@ class Trial():
 
         addSocre=[0,0]
         if True in eatenFlag[:2]:
-            addSocre=self.attributionTrail( eatenFlag, hunterFlag)
+            addSocre,timeStepforDraw=self.attributionTrail( eatenFlag, hunterFlag,timeStepforDraw)
             results["beanEaten"] = eatenFlag.index(True) + 1
         elif True in eatenFlag:
             results["beanEaten"] = eatenFlag.index(True) + 1
@@ -184,7 +135,7 @@ class Trial():
         # results["firstResponseTime"] = firstResponseTime
         results["trialTime"] = wholeResponseTime
         score=np.add(score, addSocre)
-        return results, targetPositions, playerPositions, score, currentStopwatch, eatenFlag
+        return results, targetPositions, playerPositions, score, currentStopwatch, eatenFlag,timeStepforDraw
 
 
 def main():

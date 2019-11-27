@@ -34,18 +34,18 @@ def main():
     initializeScreen = InitializeScreen(screenWidth, screenHeight, fullScreen)
     screen = initializeScreen()
 
-    leaveEdgeSpace = 4
+    leaveEdgeSpace = 6
     lineWidth = 1
     backgroundColor = THECOLORS['grey']  # [205, 255, 204]
     lineColor = [0, 0, 0]
-    targetColor = [THECOLORS['blue'],THECOLORS['blue'], (0, 168, 107),(0, 168, 107)]  # [255, 50, 50]
+    targetColor = [THECOLORS['blue'],(0,0,128), (0, 168, 107),(0, 168, 107)]  # [255, 50, 50]
     playerColors = [THECOLORS['orange'], THECOLORS['red']]
     targetRadius = 10
     playerRadius = 10
     totalBarLength=100
     barHeight=20
     stopwatchUnit = 100
-    finishTime = 1000 * 60 * 3
+    finishTime = 1000 * 60 * 2
     block = 1
     softmaxBeita = -1
     textColorTuple = THECOLORS['green']
@@ -62,7 +62,7 @@ def main():
     resultsPath = os.path.abspath(os.path.join(os.path.join(os.getcwd(), os.pardir), 'results'))
     experimentValues = co.OrderedDict()
     # experimentValues["name"] = input("Please enter your name:").capitalize()
-    experimentValues["name"] = 'naiveSingleNoStillMulti'
+    experimentValues["name"] = 'kill'+str(killzone)
     experimentValues["condition"] = 'all'
     writerPath = os.path.join(resultsPath, experimentValues["name"]) + '.csv'
     writer = WriteDataFrameToCSV(writerPath)
@@ -114,8 +114,13 @@ def main():
     sheepPolicySingleModel = ApproximatePolicy(sheepPreTrainModelSingle, sheepActionSpace)
     sheepPolicyMulti = ApproximatePolicy(sheepPreTrainModelMulti, sheepActionSpaceStill)
 
-    from src.sheepPolicy import SingleChasingPolicy,inferNearestWolf
+    from src.sheepPolicy import SingleChasingPolicy,inferNearestWolf,ComputeLikelihoodByHeatSeeking,InferCurrentWolf,BeliefPolicy
     sheepPolicySingle = SingleChasingPolicy(sheepPolicySingleModel,inferNearestWolf)
+    baseProb=0.5
+    assumePrecision=50
+    computeLikelihoodByHeatSeeking=ComputeLikelihoodByHeatSeeking(baseProb,assumePrecision)
+    inferCurrentWolf=InferCurrentWolf(computeLikelihoodByHeatSeeking)
+    beliefPolicy=BeliefPolicy(sheepPolicySingle,sheepPolicySingleModel,sheepPolicyMulti,inferCurrentWolf)
     # sheepPolicySingle = sheepPolicySingleModel
 
     # ## mcts sheep
@@ -124,12 +129,14 @@ def main():
     checkTerminationOfTrial=CheckTerminationOfTrial(finishTime)
     checkEaten=CheckEaten(killzone,isAnyKilled)
     totalScore=10
-    attributionTrail=AttributionTrail(totalScore,drawAttributionTrail)
+    attributionTrail=AttributionTrail(totalScore,saveImageDir,saveImage,drawAttributionTrail)
 
-    sheepPolicy = [sheepPolicySingle,sheepPolicyMulti]
+    # sheepPolicy = [sheepPolicySingle,sheepPolicyMulti]
+
+
     softMaxBeta = 30
     softmaxAction = SoftmaxAction(softMaxBeta)
-    humanController = HumanController(writer, gridSize, stopwatchEvent, stopwatchUnit, wolfSpeedRatio, drawNewState, finishTime, stayInBoundary, saveImage, saveImageDir, sheepPolicy, chooseGreedyAction)
+    humanController = HumanController(writer, gridSize, stopwatchEvent, stopwatchUnit, wolfSpeedRatio, drawNewState, finishTime, stayInBoundary, saveImage, saveImageDir, beliefPolicy, chooseGreedyAction)
     # policy = pickle.load(open("SingleWolfTwoSheepsGrid15.pkl","rb"))
     # modelController = ModelController(policy, gridSize, stopwatchEvent, stopwatchUnit, drawNewState, finishTime, softmaxBeita)
 
