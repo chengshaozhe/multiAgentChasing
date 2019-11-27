@@ -4,36 +4,55 @@
 import numpy as np
 import random
 import os
-class ExpSheepPolicy:
-	def __init__(passerbyPolicy,singlePolicy,multiPolicy,inferCurrentWolf):
-		self.passerbyPolicy=passerbyPolicy
-		self.singlePolicy=singlePolicy
-		self.multiPolicy=multiPolicy
-		self.inferCurrentWolf=inferCurrentWolf
 
-	def __call__(QueueState):
-		initialState=QueueState[0]
-		currentState=QueueState[-1]
-		goal=self.inferCurrentWolf(initialState,currentState)
-		if goal==[True,True]:
-			policyForCurrentStateDict= self.multiPolicy[currentState]
-		elif goal==[True,False]:
-			policyForCurrentStateDict= self.singlePolicy[currentState[0],currentState[1]]
-		elif goal==[False,True]:
-			policyForCurrentStateDict= self.singlePolicy[currentState[0],currentState[2]]
-		elif goal==[False,False]:
-			policyForCurrentStateDict= self.passerbyPolicy[currentState]
-		actionMaxList = [action for action in policyForCurrentStateDict.keys() if policyForCurrentStateDict[action] == np.max(list(policyForCurrentStateDict1.values()))]
-		return random.choice(actionMaxList)
+class ExpSheepPolicy:
+    def __init__(self, passerbyPolicy,singlePolicy,multiPolicy,inferCurrentWolf,chooseAction):
+        self.passerbyPolicy=passerbyPolicy
+        self.singlePolicy=singlePolicy
+        self.multiPolicy=multiPolicy
+        self.inferCurrentWolf=inferCurrentWolf
+        self.chooseAction = chooseAction
+
+    def __call__(self, dequeState):
+        initialState=dequeState[0]
+        currentState=dequeState[-1]
+        initialState = (tuple(initialState[0]), (tuple(initialState[1]),tuple(initialState[2])))
+
+        currentState = (tuple(currentState[0]), (tuple(currentState[1]),tuple(currentState[2])))
+
+        goal=self.inferCurrentWolf(initialState,currentState)
+
+        if goal==[True,True]:
+            policyForCurrentStateDict= self.multiPolicy[currentState]
+            print('ggggg')
+        elif goal==[True,False]:
+            # policyForCurrentStateDict= self.singlePolicy[(currentState[0],currentState[1][0])]
+            policyForCurrentStateDict= self.passerbyPolicy[currentState]
+            print('orange!!!')
+
+        elif goal==[False,True]:
+            # policyForCurrentStateDict= self.singlePolicy[(currentState[0],currentState[1][1])]
+            policyForCurrentStateDict= self.passerbyPolicy[currentState]
+            print('red!!!')
+
+        elif goal==[False,False]:
+            policyForCurrentStateDict= self.passerbyPolicy[currentState]
+
+        actionMaxList = [action for action in policyForCurrentStateDict.keys() if policyForCurrentStateDict[action] == np.max(list(policyForCurrentStateDict.values()))]
+        action = random.choice(actionMaxList)
+
+        # action = self.chooseAction(policyForCurrentStateDict)
+        return action
 
 def inferGoalGridEnv(initialState,finalState):
-	sheepIndex=[0]
-	wolf1Index=[1]
-	wolf2Index=[2]
+	sheepIndex=0
+	# wolf1Index=10
+	# wolf2Index=11
 	goal=[False,False]
-	if calculateGridDistance(finalState[1],initialState[0])< calculateGridDistance(initialState[1],initialState[0]):
+
+	if calculateGridDistance(finalState[1][0],initialState[sheepIndex])< calculateGridDistance(initialState[1][0],initialState[sheepIndex]):
 		goal[0]=True
-	if calculateGridDistance(finalState[2],initialState[0])< calculateGridDistance(initialState[2],initialState[0]):
+	if calculateGridDistance(finalState[1][1],initialState[sheepIndex])< calculateGridDistance(initialState[1][1],initialState[sheepIndex]):
 		goal[1]=True
 	return goal
 
@@ -82,8 +101,7 @@ class GenerateModel:
             with tf.variable_scope("shared"):
                 activation_ = states_
                 for i in range(len(sharedWidths)):
-                    fcLayer = tf.layers.Dense(units=sharedWidths[i], activation=tf.nn.relu, kernel_initializer=initWeight,
-                                              bias_initializer=initBias, name="fc{}".format(i + 1))
+                    fcLayer = tf.layers.Dense(units=sharedWidths[i], activation=tf.nn.relu, kernel_initializer=initWeight,bias_initializer=initBias, name="fc{}".format(i + 1))
                     activation_ = fcLayer(activation_)
                     tf.add_to_collections(["weights", f"weight/{fcLayer.kernel.name}"], fcLayer.kernel)
                     tf.add_to_collections(["biases", f"bias/{fcLayer.bias.name}"], fcLayer.bias)
@@ -93,8 +111,7 @@ class GenerateModel:
             with tf.variable_scope("action"):
                 activation_ = sharedOutput_
                 for i in range(len(actionLayerWidths)):
-                    fcLayer = tf.layers.Dense(units=actionLayerWidths[i], activation=tf.nn.relu, kernel_initializer=initWeight,
-                                              bias_initializer=initBias, name="fc{}".format(i + 1))
+                    fcLayer = tf.layers.Dense(units=actionLayerWidths[i], activation=tf.nn.relu, kernel_initializer=initWeight,bias_initializer=initBias, name="fc{}".format(i + 1))
                     activation_ = fcLayer(activation_)
                     tf.add_to_collections(["weights", f"weight/{fcLayer.kernel.name}"], fcLayer.kernel)
                     tf.add_to_collections(["biases", f"bias/{fcLayer.bias.name}"], fcLayer.bias)

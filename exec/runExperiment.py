@@ -8,11 +8,11 @@ import numpy as np
 import pickle
 import pygame as pg
 from pygame.color import THECOLORS
-from src.visualization import DrawBackground, DrawNewState, DrawImage, GiveExperimentFeedback, InitializeScreen,AttributionTrail,DrawAttributionTrail
+from src.visualization import DrawBackground, DrawNewState, DrawImage, GiveExperimentFeedback, InitializeScreen,DrawAttributionTrail
 from src.controller import HumanController, ModelController
 from src.updateWorld import InitialWorld, UpdateWorld, StayInBoundary
 from src.writer import WriteDataFrameToCSV
-from src.trial import Trial
+from src.trial import Trial,AttributionTrail
 from src.experiment import Experiment
 from src.sheepPolicy import GenerateModel, restoreVariables, ApproximatePolicy, chooseGreedyAction, sampleAction, SoftmaxAction,ExpSheepPolicy,calculateGridDistance,inferGoalGridEnv
 
@@ -51,7 +51,7 @@ def main():
     textColorTuple = THECOLORS['green']
     stopwatchEvent = pg.USEREVENT + 1
 
-    saveImage = False
+    saveImage = True
     killzone = 1
     wolfSpeedRatio = 1
 
@@ -62,7 +62,7 @@ def main():
     resultsPath = os.path.abspath(os.path.join(os.path.join(os.getcwd(), os.pardir), 'results'))
     experimentValues = co.OrderedDict()
     # experimentValues["name"] = input("Please enter your name:").capitalize()
-    experimentValues["name"] = 'test'
+    experimentValues["name"] = 'demoTrial'
     experimentValues["condition"] = 'all'
     writerPath = os.path.join(resultsPath, experimentValues["name"]) + '.csv'
     writer = WriteDataFrameToCSV(writerPath)
@@ -82,28 +82,34 @@ def main():
     xBoundary = [bounds[0], bounds[2]]
     yBoundary = [bounds[1], bounds[3]]
     stayInBoundary = StayInBoundary(xBoundary, yBoundary)
+
 #########
     sheepActionSpace = [(1, 0), (0, 1), (-1, 0), (0, -1), (0, 0)]
     # sheepPolicy = {}
     # sheepPolicySingle =pickle.load(open("SingleWolfTwoSheepsGrid15.pkl","rb"))
+    softMaxBeta = 100
+    softmaxAction = SoftmaxAction(softMaxBeta)
+
 
     multiPath = os.path.join(os.path.abspath(os.path.join(os.path.join(os.getcwd(), os.pardir), 'data/policy')))
     sheepPolicyMulti = pickle.load(open(os.path.join(multiPath, "sheepRunTwoWolf.pkl"), "rb"))
     sheepPolicyWalk = pickle.load(open(os.path.join(multiPath, "sheepRunTwoWolfWithRandomWalk.pkl"), "rb"))
     sheepPolicySingle = pickle.load(open(os.path.join(multiPath, "sheepRunOneWolfGird15.pkl"), "rb"))
-    sheepPolicy=ExpSheepPolicy(sheepPolicyWalk,sheepPolicySingle,sheepPolicyMulti,inferGoalGridEnv)
-    sheepPolicy = [sheepPolicyMulti, sheepPolicyMulti,sheepPolicySingle]
+    sheepPolicy = ExpSheepPolicy(sheepPolicyWalk,sheepPolicySingle,sheepPolicyMulti,inferGoalGridEnv,softmaxAction )
 
 
-    softMaxBeta = 30
-    softmaxAction = SoftmaxAction(softMaxBeta)
+
+### mcts sheep
+    # from mcts import sheepMCTS
+    # sheepPolicy = sheepMCTS()
+
     humanController = HumanController(writer, gridSize, stopwatchEvent, stopwatchUnit, wolfSpeedRatio, drawNewState, finishTime, stayInBoundary, saveImage, saveImageDir, sheepPolicy, chooseGreedyAction)
     # modelController = ModelController(policy, gridSize, stopwatchEvent, stopwatchUnit, drawNewState, finishTime, softmaxBeita)
 
     actionSpace = list(it.product([0, 1, -1], repeat=2))
     actionSpace = [(1, 0), (0, 1), (-1, 0), (0, -1), (0, 0)]
     totalScore=10
-    attributionTrail=AttributionTrail(totalScore,drawAttributionTrail)
+    attributionTrail=AttributionTrail(totalScore,drawAttributionTrail,saveImage,saveImageDir)
     trial = Trial(humanController, actionSpace, killzone, drawNewState, stopwatchEvent, finishTime, attributionTrail)
     experiment = Experiment(trial, writer, experimentValues, initialWorld, updateWorld, drawImage, resultsPath)
     giveExperimentFeedback = GiveExperimentFeedback(screen, textColorTuple, screenWidth, screenHeight)

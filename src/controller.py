@@ -10,7 +10,7 @@ import collections as co
 class HumanControllerWithStrait():
     def __init__(self, gridSize):
         self.actionDict = [{pg.K_UP: [0, -1], pg.K_DOWN: [0, 1], pg.K_LEFT: [-1, 0], pg.K_RIGHT: [1, 0]},
-                           {pg.K_w: [0, -1], pg.K_s: [0, 1], pg.K_a: [-1, 0], pg.K_d: [1, 0]}]
+{pg.K_w: [0, -1], pg.K_s: [0, 1], pg.K_a: [-1, 0], pg.K_d: [1, 0]}]
         self.gridSize = gridSize
 
     def __call__(self, playerGrid, straitGrid):
@@ -35,7 +35,7 @@ class HumanController():
         self.chooseGreedyAction = chooseGreedyAction
         self.actionDict = [{pg.K_UP: [0, -1], pg.K_DOWN: [0, 1], pg.K_LEFT: [-1, 0], pg.K_RIGHT: [1, 0]}, {pg.K_w: [0, -1], pg.K_s: [0, 1], pg.K_a: [-1, 0], pg.K_d: [1, 0]}]
 
-    def __call__(self, targetPositionA, targetPositionB, targetPositionC, targetPositionD, playerPositions, currentScore, currentStopwatch, trialIndex):
+    def __call__(self, targetPositionA, targetPositionB, targetPositionC, targetPositionD, playerPositions, currentScore, currentStopwatch, trialIndex,stateMemory):
         newStopwatch = currentStopwatch
         remainningTime = max(0, self.finishTime - currentStopwatch)
 
@@ -72,25 +72,47 @@ class HumanController():
         action3 = [0, 0]
         action4 = [0, 0]
 
-        wolfStates = (tuple(playerPositions[0]), tuple(playerPositions[1]))
-        wolfStatesReverse = (tuple(playerPositions[1]), tuple(playerPositions[0]))
-        try:
-            policyForCurrentStateDict1 = self.sheepPolicy[0][tuple(targetPositionA),wolfStates]
-        except KeyError as e:
-            policyForCurrentStateDict1 = self.sheepPolicy[0][tuple(targetPositionA),wolfStatesReverse]
+        # wolfStates = list(tuple(playerPositions[0]), tuple(playerPositions[1])).sort()
+        # wolfStatesReverse = (tuple(playerPositions[1]), tuple(playerPositions[0]))
 
-        try:
-            policyForCurrentStateDict2 = self.sheepPolicy[1][tuple(targetPositionB),wolfStates]
-        except KeyError as e:
-            policyForCurrentStateDict2 = self.sheepPolicy[1][tuple(targetPositionB),wolfStatesReverse]
+        # try:
+        #     policyForCurrentStateDict1 = self.sheepPolicy[0][tuple(targetPositionA),wolfStates]
+        # except KeyError as e:
+        #     policyForCurrentStateDict1 = self.sheepPolicy[0][tuple(targetPositionA),wolfStatesReverse]
 
-        actionMaxList1 = [action for action in policyForCurrentStateDict1.keys() if policyForCurrentStateDict1[action] == np.max(list(policyForCurrentStateDict1.values()))]
+        # try:
+        #     policyForCurrentStateDict2 = self.sheepPolicy[1][tuple(targetPositionB),wolfStates]
+        # except KeyError as e:
+        #     policyForCurrentStateDict2 = self.sheepPolicy[1][tuple(targetPositionB),wolfStatesReverse]
 
-        actionMaxList2 = [action for action in policyForCurrentStateDict2.keys() if policyForCurrentStateDict2[action] == np.max(list(policyForCurrentStateDict2.values()))]
+        # actionMaxList1 = [action for action in policyForCurrentStateDict1.keys() if policyForCurrentStateDict1[action] == np.max(list(policyForCurrentStateDict1.values()))]
+
+        # actionMaxList2 = [action for action in policyForCurrentStateDict2.keys() if policyForCurrentStateDict2[action] == np.max(list(policyForCurrentStateDict2.values()))]
 
         if currentStopwatch % 200 == 0:
-            action3 = random.choice(actionMaxList1)
-            action4 = random.choice(actionMaxList2)
+            def sortstate(state):
+                temp=state.copy()
+                temp.sort()
+                return temp
+            sheep1Memory=[[state[0],sortstate(state[2])] for state in stateMemory]
+            sheep2Memory= [[state[1],sortstate(state[2])] for state in stateMemory]
+            sheep1Memory=[(state[0],state[1][0],state[1][1]) for state in sheep1Memory]
+            sheep2Memory=[(state[0],state[1][0],state[1][1]) for state in sheep2Memory]
+            action3=self.sheepPolicy(sheep1Memory)
+            action4=self.sheepPolicy(sheep2Memory)
+
+            # def chooseGreedyAction(actionDist):
+            #     actions = list(actionDist.keys())
+            #     probs = list(actionDist.values())
+            #     maxIndices = np.argwhere(probs == np.max(probs)).flatten()
+            #     selectedIndex = np.random.choice(maxIndices)
+            #     selectedAction = actions[selectedIndex]
+            #     return selectedAction
+
+            # action3 = chooseGreedyAction(self.sheepPolicy([targetPositionA,playerPositions[0]]))
+            # # action4 = chooseGreedyAction(self.sheepPolicy([targetPositionB,playerPositions[1]]))
+            # action4 = [0,0]
+
 
         for event in pg.event.get():
             if event.type == pg.QUIT:
