@@ -8,7 +8,7 @@ import collections as co
 
 
 class HumanController():
-    def __init__(self, writer, gridSize, stopwatchEvent, stopwatchUnit, wolfSpeedRatio, drawNewState, finishTime, stayInBoundary, saveImage, saveImageDir, sheepPolicy, chooseGreedyAction):
+    def __init__(self, writer, gridSize, stopwatchEvent, stopwatchUnit, wolfSpeedRatio, drawNewState, finishTime, stayInBoundary, saveImage, saveImageDir, sheepPolicy, wolfPolicy,chooseGreedyAction):
         self.writer = writer
         self.gridSize = gridSize
         self.stopwatchEvent = stopwatchEvent
@@ -21,6 +21,7 @@ class HumanController():
         self.saveImage = saveImage
         self.saveImageDir = saveImageDir
         self.sheepPolicy = sheepPolicy
+        self.wolfPolicy = wolfPolicy
         self.chooseGreedyAction = chooseGreedyAction
 
     def __call__(self,targetPositions, playerPositions, currentScore, currentStopwatch, trialIndex,timeStepforDraw,dequeState):
@@ -92,9 +93,9 @@ class HumanController():
             action = [actionList[i:i + 2] for i in range(0, len(actionList), numAxes)]
 
             action1 = np.array(action[0]) * self.wolfSpeedRatio
-            action2 = np.array(action[1]) * self.wolfSpeedRatio
+            # action2 = np.array(action[1]) * self.wolfSpeedRatio
 
-
+            action2 = np.array(self.chooseGreedyAction(self.wolfPolicy((np.array(targetPositions[0])*10,np.array(playerPositions[0])*10,np.array(playerPositions[1])*10 )))[0]) / 20
             # action3 = np.array(self.chooseGreedyAction(self.sheepPolicy[0]((np.array(targetPositionA) * 10, np.array(playerPositions[0]) * 10)))) / 20
 
 
@@ -104,10 +105,10 @@ class HumanController():
             # action4 = np.array(self.chooseGreedyAction(self.sheepPolicy[1]((np.array(targetPositions[1]) * 10, np.array(playerPositions[0]) * 10, np.array(playerPositions[1]) * 10)))) / 20
 
 
-            action3 = np.array(self.chooseGreedyAction(self.sheepPolicy(0,np.array(dequeState)* 10 )))/ 10
-            action4 = np.array(self.chooseGreedyAction(self.sheepPolicy(1,np.array(dequeState)* 10 )))/ 10
+            action3 = np.array(self.chooseGreedyAction(self.sheepPolicy(0,np.array(dequeState)* 10 )))/ 15
+            # action4 = np.array(self.chooseGreedyAction(self.sheepPolicy(1,np.array(dequeState)* 10 )))/ 10
 
-            # action4 = [0,0]
+            action4 = [0,0]
 
             # print(playerPositions)
             # print(targetPositionA,action3)
