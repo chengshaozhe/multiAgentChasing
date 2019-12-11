@@ -8,11 +8,11 @@ import numpy as np
 import pickle
 import pygame as pg
 from pygame.color import THECOLORS
-from src.visualization import DrawBackground, DrawNewState, DrawImage, GiveExperimentFeedback, InitializeScreen,DrawAttributionTrail
+from src.visualization import DrawBackground, DrawNewState, DrawImage, GiveExperimentFeedback, InitializeScreen, DrawAttributionTrail
 from src.controller import HumanController, ModelController
 from src.updateWorld import InitialWorld, UpdateWorld, StayInBoundary
 from src.writer import WriteDataFrameToCSV
-from src.trial import Trial,AttributionTrail,isAnyKilled,CheckEaten,CheckTerminationOfTrial
+from src.trial import Trial, AttributionTrail, isAnyKilled, CheckEaten, CheckTerminationOfTrial
 from src.experiment import Experiment
 from src.sheepPolicy import GenerateModel, restoreVariables, ApproximatePolicy, chooseGreedyAction, sampleAction, SoftmaxAction
 
@@ -29,7 +29,7 @@ def main():
 
     screenWidth = 800
     screenHeight = 800
-    screenCenter=[screenWidth/2,screenHeight/2]
+    screenCenter = [screenWidth / 2, screenHeight / 2]
     fullScreen = False
     initializeScreen = InitializeScreen(screenWidth, screenHeight, fullScreen)
     screen = initializeScreen()
@@ -38,12 +38,12 @@ def main():
     lineWidth = 1
     backgroundColor = THECOLORS['grey']  # [205, 255, 204]
     lineColor = [0, 0, 0]
-    targetColor = [THECOLORS['blue'],(0,0,128), (0, 168, 107),(0, 168, 107)]  # [255, 50, 50]
+    targetColor = [THECOLORS['blue'], (0, 0, 128), (0, 168, 107), (0, 168, 107)]  # [255, 50, 50]
     playerColors = [THECOLORS['orange'], THECOLORS['red']]
     targetRadius = 10
     playerRadius = 10
-    totalBarLength=100
-    barHeight=20
+    totalBarLength = 100
+    barHeight = 20
     stopwatchUnit = 100
     finishTime = 1000 * 60 * 2
     block = 1
@@ -62,7 +62,7 @@ def main():
     resultsPath = os.path.abspath(os.path.join(os.path.join(os.getcwd(), os.pardir), 'results'))
     experimentValues = co.OrderedDict()
     # experimentValues["name"] = input("Please enter your name:").capitalize()
-    experimentValues["name"] = 'kill'+str(killzone)
+    experimentValues["name"] = 'kill' + str(killzone)
     experimentValues["condition"] = 'all'
     writerPath = os.path.join(resultsPath, experimentValues["name"]) + '.csv'
     writer = WriteDataFrameToCSV(writerPath)
@@ -73,10 +73,10 @@ def main():
     introductionImage = pg.transform.scale(introductionImage, (screenWidth, screenHeight))
     finishImage = pg.transform.scale(finishImage, (int(screenWidth * 2 / 3), int(screenHeight / 4)))
 
-    drawBackground = DrawBackground(screen, gridSize, leaveEdgeSpace, backgroundColor, lineColor, lineWidth, textColorTuple,playerColors)
+    drawBackground = DrawBackground(screen, gridSize, leaveEdgeSpace, backgroundColor, lineColor, lineWidth, textColorTuple, playerColors)
     drawNewState = DrawNewState(screen, drawBackground, targetColor, playerColors, targetRadius, playerRadius)
     drawImage = DrawImage(screen)
-    drawAttributionTrail=DrawAttributionTrail(screen,playerColors,totalBarLength,barHeight,screenCenter)
+    drawAttributionTrail = DrawAttributionTrail(screen, playerColors, totalBarLength, barHeight, screenCenter)
     saveImageDir = os.path.join(os.path.join(os.path.abspath(os.path.join(os.getcwd(), os.pardir)), 'data'), experimentValues["name"])
 
     xBoundary = [bounds[0], bounds[2]]
@@ -86,12 +86,12 @@ def main():
     actionSpace = [(10, 0), (7, 7), (0, 10), (-7, 7), (-10, 0), (-7, -7), (0, -10), (7, -7)]
     preyPowerRatio = 3
     sheepActionSpace = list(map(tuple, np.array(actionSpace) * preyPowerRatio))
-    sheepActionSpace.append((0,0))
+    sheepActionSpace.append((0, 0))
     numActionSpace = len(sheepActionSpace)
 
     actionSpaceStill = [(10, 0), (7, 7), (0, 10), (-7, 7), (-10, 0), (-7, -7), (0, -10), (7, -7)]
     sheepActionSpaceStill = list(map(tuple, np.array(actionSpaceStill) * preyPowerRatio))
-    sheepActionSpaceStill.append((0,0))
+    sheepActionSpaceStill.append((0, 0))
     numActionSpaceStill = len(sheepActionSpaceStill)
 
     regularizationFactor = 1e-4
@@ -104,8 +104,8 @@ def main():
     depth = 5
     generateSheepModelSingle = GenerateModel(4, numActionSpace, regularizationFactor)
     generateSheepModelMulti = GenerateModel(6, numActionSpaceStill, regularizationFactor)
-    initSheepNNModelSingle = generateSheepModelSingle(sharedWidths * depth, actionLayerWidths, valueLayerWidths, resBlockSize,initializationMethod, dropoutRate)
-    initSheepNNModelMulti= generateSheepModelMulti(sharedWidths * depth, actionLayerWidths, valueLayerWidths, resBlockSize,initializationMethod, dropoutRate)
+    initSheepNNModelSingle = generateSheepModelSingle(sharedWidths * depth, actionLayerWidths, valueLayerWidths, resBlockSize, initializationMethod, dropoutRate)
+    initSheepNNModelMulti = generateSheepModelMulti(sharedWidths * depth, actionLayerWidths, valueLayerWidths, resBlockSize, initializationMethod, dropoutRate)
     sheepPreTrainModelPathSingle = os.path.join('..', 'trainedModelsSingle', 'agentId=0_dataSize=5000_depth=5_learningRate=0.0001_maxRunningSteps=150_miniBatchSize=256_numSimulations=100_sampleOneStepPerTraj=0_trainSteps=50000')
     sheepPreTrainModelPathMulti = os.path.join('..', 'trainedModelsMulti', 'agentId=0_depth=5_learningRate=0.0001_maxRunningSteps=150_miniBatchSize=256_numSimulations=200_trainSteps=50000')
     sheepPreTrainModelSingle = restoreVariables(initSheepNNModelSingle, sheepPreTrainModelPathSingle)
@@ -114,25 +114,24 @@ def main():
     sheepPolicySingleModel = ApproximatePolicy(sheepPreTrainModelSingle, sheepActionSpace)
     sheepPolicyMulti = ApproximatePolicy(sheepPreTrainModelMulti, sheepActionSpaceStill)
 
-    from src.sheepPolicy import SingleChasingPolicy,inferNearestWolf,ComputeLikelihoodByHeatSeeking,InferCurrentWolf,BeliefPolicy
-    sheepPolicySingle = SingleChasingPolicy(sheepPolicySingleModel,inferNearestWolf)
-    baseProb=0.5
-    assumePrecision=50
-    computeLikelihoodByHeatSeeking=ComputeLikelihoodByHeatSeeking(baseProb,assumePrecision)
-    inferCurrentWolf=InferCurrentWolf(computeLikelihoodByHeatSeeking)
-    beliefPolicy=BeliefPolicy(sheepPolicySingle,sheepPolicySingleModel,sheepPolicyMulti,inferCurrentWolf)
+    from src.sheepPolicy import SingleChasingPolicy, inferNearestWolf, ComputeLikelihoodByHeatSeeking, InferCurrentWolf, BeliefPolicy
+    sheepPolicySingle = SingleChasingPolicy(sheepPolicySingleModel, inferNearestWolf)
+    baseProb = 0.5
+    assumePrecision = 50
+    computeLikelihoodByHeatSeeking = ComputeLikelihoodByHeatSeeking(baseProb, assumePrecision)
+    inferCurrentWolf = InferCurrentWolf(computeLikelihoodByHeatSeeking)
+    beliefPolicy = BeliefPolicy(sheepPolicySingle, sheepPolicySingleModel, sheepPolicyMulti, inferCurrentWolf)
     # sheepPolicySingle = sheepPolicySingleModel
 
     # ## mcts sheep
     # from mcts import sheepMCTS
     # sheepPolicy = sheepMCTS()
-    checkTerminationOfTrial=CheckTerminationOfTrial(finishTime)
-    checkEaten=CheckEaten(killzone,isAnyKilled)
-    totalScore=10
-    attributionTrail=AttributionTrail(totalScore,saveImageDir,saveImage,drawAttributionTrail)
+    checkTerminationOfTrial = CheckTerminationOfTrial(finishTime)
+    checkEaten = CheckEaten(killzone, isAnyKilled)
+    totalScore = 10
+    attributionTrail = AttributionTrail(totalScore, saveImageDir, saveImage, drawAttributionTrail)
 
     # sheepPolicy = [sheepPolicySingle,sheepPolicyMulti]
-
 
     softMaxBeta = 30
     softmaxAction = SoftmaxAction(softMaxBeta)
@@ -142,7 +141,7 @@ def main():
 
     actionSpace = list(it.product([0, 1, -1], repeat=2))
 
-    trial = Trial( actionSpace, killzone, stopwatchEvent,drawNewState,  checkTerminationOfTrial,checkEaten,attributionTrail,humanController)
+    trial = Trial(actionSpace, killzone, stopwatchEvent, drawNewState, checkTerminationOfTrial, checkEaten, attributionTrail, humanController)
     experiment = Experiment(trial, writer, experimentValues, initialWorld, updateWorld, drawImage, resultsPath)
     giveExperimentFeedback = GiveExperimentFeedback(screen, textColorTuple, screenWidth, screenHeight)
 

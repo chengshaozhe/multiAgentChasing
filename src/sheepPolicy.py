@@ -6,77 +6,84 @@ import scipy.stats as stats
 import random
 import os
 
+
 class ComputeLikelihoodByHeatSeeking:
 
-    def __init__(self,baseProb,assumePrecision):
+    def __init__(self, baseProb, assumePrecision):
 
-        self.baseProb=baseProb
-        self.assumePrecision=assumePrecision
-    def __call__(self,vector1, vector2):
-        if np.linalg.norm(vector1, ord=2)==0 or np.linalg.norm(vector2, ord=2)==0 :
+        self.baseProb = baseProb
+        self.assumePrecision = assumePrecision
+
+    def __call__(self, vector1, vector2):
+        if np.linalg.norm(vector1, ord=2) == 0 or np.linalg.norm(vector2, ord=2) == 0:
             return self.baseProb
         else:
             deviationAngle = abs(np.angle(complex(vector1[0], vector1[1]) / complex(vector2[0], vector2[1])))
-            pLikelihood = (1-stats.vonmises.cdf(deviationAngle, self.assumePrecision))*2
+            pLikelihood = (1 - stats.vonmises.cdf(deviationAngle, self.assumePrecision)) * 2
             return pLikelihood
+
+
 class InferCurrentWolf:
     def __init__(self, computeLikelihoodByHeatSeeking):
         self.computeLikelihoodByHeatSeeking = computeLikelihoodByHeatSeeking
-        self.wolvesID=[2,3]
+        self.wolvesID = [2, 3]
 
-    def __call__(self,sheepId,dequeState):
+    def __call__(self, sheepId, dequeState):
 
-        goal =[False]*len(self.wolvesID)
-        for (i,wolfId) in enumerate(self.wolvesID):
-            heatSeekingVectorList= [dequeState[i - 1][sheepId] - dequeState[i - 1][wolfId] for i in range(1, len(dequeState))]
+        goal = [False] * len(self.wolvesID)
+        for (i, wolfId) in enumerate(self.wolvesID):
+            heatSeekingVectorList = [dequeState[i - 1][sheepId] - dequeState[i - 1][wolfId] for i in range(1, len(dequeState))]
             wolfVectorList = [dequeState[i][wolfId] - dequeState[i - 1][wolfId]for i in range(1, len(dequeState))]
-            pLikelihoodList=np.array([self.computeLikelihoodByHeatSeeking(v1,v2) for v1 ,v2 in zip(heatSeekingVectorList,wolfVectorList)])
-            pLikeliMean=np.mean(pLikelihoodList)
-            print(sheepId,wolfId,pLikeliMean)
-            goal[i]=0<pLikeliMean
+            pLikelihoodList = np.array([self.computeLikelihoodByHeatSeeking(v1, v2) for v1, v2 in zip(heatSeekingVectorList, wolfVectorList)])
+            pLikeliMean = np.mean(pLikelihoodList)
+            print(sheepId, wolfId, pLikeliMean)
+            goal[i] = 0 < pLikeliMean
         return goal
 
+
 class BeliefPolicy:
-    def __init__(self,passerbyPolicy,singlePolicy,multiPolicy,inferCurrentWolf):
-        self.passerbyPolicy=passerbyPolicy
-        self.singlePolicy=singlePolicy
-        self.multiPolicy=multiPolicy
-        self.inferCurrentWolf=inferCurrentWolf
+    def __init__(self, passerbyPolicy, singlePolicy, multiPolicy, inferCurrentWolf):
+        self.passerbyPolicy = passerbyPolicy
+        self.singlePolicy = singlePolicy
+        self.multiPolicy = multiPolicy
+        self.inferCurrentWolf = inferCurrentWolf
 
-    def __call__(self,sheepId,dequeState):
-        goal=self.inferCurrentWolf(sheepId,dequeState)
+    def __call__(self, sheepId, dequeState):
+        goal = self.inferCurrentWolf(sheepId, dequeState)
 
-        currentState=dequeState[-1]
-        print(sheepId,goal)
-        if goal==[True,True]:
-            policyForCurrentStateDict= self.multiPolicy((currentState[sheepId],currentState[2],currentState[3]))
-        elif goal==[True,False]:
-            policyForCurrentStateDict= self.singlePolicy((currentState[sheepId],currentState[2]))
-        elif goal==[False,True]:
-            policyForCurrentStateDict= self.singlePolicy((currentState[sheepId],currentState[3]))
-        elif goal==[False,False]:
-            policyForCurrentStateDict= self.passerbyPolicy(currentState[sheepId],currentState[2:])
+        currentState = dequeState[-1]
+        print(sheepId, goal)
+        if goal == [True, True]:
+            policyForCurrentStateDict = self.multiPolicy((currentState[sheepId], currentState[2], currentState[3]))
+        elif goal == [True, False]:
+            policyForCurrentStateDict = self.singlePolicy((currentState[sheepId], currentState[2]))
+        elif goal == [False, True]:
+            policyForCurrentStateDict = self.singlePolicy((currentState[sheepId], currentState[3]))
+        elif goal == [False, False]:
+            policyForCurrentStateDict = self.passerbyPolicy(currentState[sheepId], currentState[2:])
 
         return policyForCurrentStateDict
 
 
 class SingleChasingPolicy:
-    def __init__(self,singlePolicy,inferNearestWolf):
-        self.singlePolicy=singlePolicy
-        self.inferNearestWolf=inferNearestWolf
+    def __init__(self, singlePolicy, inferNearestWolf):
+        self.singlePolicy = singlePolicy
+        self.inferNearestWolf = inferNearestWolf
 
-    def __call__(self,sheepPos,wolvesPos):
-
-        nearestWolfPos=self.inferNearestWolf(sheepPos,wolvesPos)
-        actionDict=self.singlePolicy((sheepPos,nearestWolfPos))
+    def __call__(self, sheepPos, wolvesPos):
+        nearestWolfPos = self.inferNearestWolf(sheepPos, wolvesPos)
+        actionDict = self.singlePolicy((sheepPos, nearestWolfPos))
 
         return actionDict
 
-def inferNearestWolf(sheepPos,wolvesPos):
-    getDistance=lambda wolf,sheep:np.linalg.norm(wolf-sheep)
-    distancelist=[getDistance(wolfPos,sheepPos) for wolfPos in wolvesPos]
+
+def inferNearestWolf(sheepPos, wolvesPos):
+    getDistance = lambda wolf, sheep: np.linalg.norm(wolf - sheep)
+    distancelist = [getDistance(wolfPos, sheepPos) for wolfPos in wolvesPos]
 
     return wolvesPos[np.argmin(distancelist)]
+
+
 class GenerateModel:
     def __init__(self, numStateSpace, numActionSpace, regularizationFactor=0.0, valueRelativeErrBound=0.01, seed=128):
         self.numStateSpace = numStateSpace
@@ -135,7 +142,7 @@ class GenerateModel:
                 for i in range(2, len(sharedWidths) + 1):
                     if i in blockHeads:
                         resBlockInput_ = activation_
-                    fcLayer = tf.layers.Dense(units=sharedWidths[i-1], activation=None, kernel_initializer=initWeight,
+                    fcLayer = tf.layers.Dense(units=sharedWidths[i - 1], activation=None, kernel_initializer=initWeight,
                                               bias_initializer=initBias, name="fc{}".format(i))
                     preActivation_ = tf.nn.dropout(fcLayer(activation_), rate=dropoutRate)
                     activation_ = tf.nn.relu(preActivation_ + resBlockInput_) if i in blockTails \
@@ -149,7 +156,7 @@ class GenerateModel:
                 activation_ = sharedOutput_
                 for i in range(len(actionLayerWidths)):
                     fcLayer = tf.layers.Dense(units=actionLayerWidths[i], activation=tf.nn.relu, kernel_initializer=initWeight,
-                                              bias_initializer=initBias, name="fc{}".format(i+1))
+                                              bias_initializer=initBias, name="fc{}".format(i + 1))
                     activation_ = tf.nn.dropout(fcLayer(activation_), rate=dropoutRate)
                     tf.add_to_collections(["weights", f"weight/{fcLayer.kernel.name}"], fcLayer.kernel)
                     tf.add_to_collections(["biases", f"bias/{fcLayer.bias.name}"], fcLayer.bias)
@@ -172,7 +179,7 @@ class GenerateModel:
                 activation_ = sharedOutput_
                 for i in range(len(valueLayerWidths)):
                     fcLayer = tf.layers.Dense(units=valueLayerWidths[i], activation=tf.nn.relu, kernel_initializer=initWeight,
-                                              bias_initializer=initBias, name="fc{}".format(i+1))
+                                              bias_initializer=initBias, name="fc{}".format(i + 1))
                     activation_ = tf.nn.dropout(fcLayer(activation_), rate=dropoutRate)
                     tf.add_to_collections(["weights", f"weight/{fcLayer.kernel.name}"], fcLayer.kernel)
                     tf.add_to_collections(["biases", f"bias/{fcLayer.bias.name}"], fcLayer.bias)
@@ -224,7 +231,7 @@ class GenerateModel:
                         name="l2RegLoss")
                     tf.summary.scalar("l2RegLoss", l2RegularizationLoss_)
 
-                loss_ = tf.add_n([actionLossCoef_*actionLoss_, valueLossCoef_*valueLoss_, l2RegularizationLoss_], name="loss")
+                loss_ = tf.add_n([actionLossCoef_ * actionLoss_, valueLossCoef_ * valueLoss_, l2RegularizationLoss_], name="loss")
                 tf.add_to_collection("loss", loss_)
                 lossSummary = tf.summary.scalar("loss", loss_)
 
@@ -264,8 +271,9 @@ class GenerateModel:
 
         return model
 
+
 class ApproximatePolicy:
-    def __init__ (self, policyValueNet, actionSpace):
+    def __init__(self, policyValueNet, actionSpace):
         self.policyValueNet = policyValueNet
         self.actionSpace = actionSpace
 
