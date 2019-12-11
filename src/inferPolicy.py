@@ -1,6 +1,56 @@
 import numpy as np
 from scipy import stats
 
+class StayInBoundaryByReflectVelocity():
+    def __init__(self, xBoundary, yBoundary):
+        self.xMin, self.xMax = xBoundary
+        self.yMin, self.yMax = yBoundary
+
+    def __call__(self, position, velocity):
+        adjustedX, adjustedY = position
+        adjustedVelX, adjustedVelY = velocity
+        if position[0] >= self.xMax:
+            adjustedX = 2 * self.xMax - position[0]
+            adjustedVelX = -velocity[0]
+        if position[0] <= self.xMin:
+            adjustedX = 2 * self.xMin - position[0]
+            adjustedVelX = -velocity[0]
+        if position[1] >= self.yMax:
+            adjustedY = 2 * self.yMax - position[1]
+            adjustedVelY = -velocity[1]
+        if position[1] <= self.yMin:
+            adjustedY = 2 * self.yMin - position[1]
+            adjustedVelY = -velocity[1]
+        checkedPosition = np.array([adjustedX, adjustedY])
+        checkedVelocity = np.array([adjustedVelX, adjustedVelY])
+        return checkedPosition, checkedVelocity
+
+class UnpackCenterControlAction:
+    def __init__(self, centerControlIndexList):
+        self.centerControlIndexList = centerControlIndexList
+
+    def __call__(self, centerControlAction):
+        upackedAction = []
+        for index, action in enumerate(centerControlAction):
+            if index in self.centerControlIndexList:
+                [upackedAction.append(subAction) for subAction in action]
+            else:
+                upackedAction.append(action)
+        return np.array(upackedAction)
+
+
+class TransiteForNoPhysicsWithCenterControlAction():
+    def __init__(self, stayInBoundaryByReflectVelocity, unpackCenterControlAction):
+        self.stayInBoundaryByReflectVelocity = stayInBoundaryByReflectVelocity
+        self.unpackCenterControlAction = unpackCenterControlAction
+
+    def __call__(self, state, action):
+        actionFortansit = self.unpackCenterControlAction(action)
+        newState = state + np.array(actionFortansit)
+        checkedNewStateAndVelocities = [self.stayInBoundaryByReflectVelocity(
+            position, velocity) for position, velocity in zip(newState, actionFortansit)]
+        newState, newAction = list(zip(*checkedNewStateAndVelocities))
+        return newState
 
 def chooseGreedyAction(actionDist):
     actions = list(actionDist.keys())
@@ -105,7 +155,7 @@ class InferGoalWithAction:
 
 def calTargetFromPosterior(posteriorList):
     target = np.max(posteriorList)
-    return targetIndex
+    return target
 
 
 class InferCommitmentAndDraw:
@@ -119,31 +169,81 @@ class InferCommitmentAndDraw:
 
 
 if __name__ == '__main__':
-    centerControlPolicy =
 
-    actionSpace =
+    actionSpace = [(10, 0), (7, 7), (0, 10), (-7, 7),
+                   (-10, 0), (-7, -7), (0, -10), (7, -7), (0, 0)]
+    preyPowerRatio = 3
+    sheepActionSpace = list(map(tuple, np.array(actionSpace) * preyPowerRatio))
+    predatorPowerRatio = 2
+    wolfActionOneSpace = list(map(tuple, np.array(actionSpace) * predatorPowerRatio))
+    wolfActionTwoSpace = list(map(tuple, np.array(actionSpace) * predatorPowerRatio))
+    wolvesActionSpace = list(product(wolfActionOneSpace, wolfActionTwoSpace))
+
+    numStateSpace = 6
+    numSheepActionSpace = len(sheepActionSpace)
+    numWolvesActionSpace = len(wolvesActionSpace)
+    regularizationFactor = 1e-4
+    sharedWidths = [128]
+    actionLayerWidths = [128]
+    valueLayerWidths = [128]
+    generateSheepModel = GenerateModel(numStateSpace, numSheepActionSpace, regularizationFactor)
+    generateWolvesModel = GenerateModel(numStateSpace, numWolvesActionSpace, regularizationFactor)
+    generateModelList = [generateSheepModel, generateWolvesModel]
+
+    sheepDepth = 5
+    wolfDepth = 9
+    depthList = [sheepDepth, wolfDepth]
+    resBlockSize = 2
+    dropoutRate = 0.0
+    initializationMethod = 'uniform'
+    trainableAgentIds = [sheepId, wolvesId]
+
+    multiAgentNNmodel = [generateModel(sharedWidths * depth, actionLayerWidths, valueLayerWidths, resBlockSize, initializationMethod, dropoutRate) for depth, generateModel in zip(depthList, generateModelList)]
+
+    # load Model save dir
+    NNModelSaveExtension = ''
+    NNModelSaveDirectory = os.path.join(dirName, '..', '..', '..', 'data', 'multiAgentTrain', 'multiMCTSAgentResNetNoPhysicsCenterControlWithPreTrain', 'NNModelRes')
+    if not os.path.exists(NNModelSaveDirectory):
+        os.makedirs(NNModelSaveDirectory)
+
+    generateNNModelSavePath = GetSavePath(NNModelSaveDirectory, NNModelSaveExtension, fixedParameters)
+    wolfModelPath=os.path.join(dirName,'preTrainModel','agentId=1_depth=9_learningRate=0.0001_maxRunningSteps=100_miniBatchSize=256_numSimulations=200_trainSteps=50000')
+    restoredNNModel = restoreVariables(multiAgentNNmodel[wolvesId], wolfModelPath)
+    multiAgentNNmodel[wolvesId] = restoredNNModel
+    wolfPolicy = ApproximatePolicy(multiAgentNNmodel[wolvesId], wolvesActionSpace)
+
+    sheepModelPath=os.path.join(dirName,'preTrainModel','agentId=0_depth=5_learningRate=0.0001_maxRunningSteps=150_miniBatchSize=256_numSimulations=200_trainSteps=50000')
+    sheepTrainedModel = restoreVariables(multiAgentNNmodel[sheepId], sheepModelPath)
+    sheepPolicy = ApproximatePolicy(sheepTrainedModel, sheepActionSpace)
+
+    def policy(state): return [sheepPolicy(state), wolfPolicy(state)]
+
+    chooseActionList = [chooseGreedyAction, chooseGreedyAction]
 
     import numpy as np
     import matplotlib.pyplot as plt
-
-    x = np.arange(2)
-    y = np.array(goalPosteriorList).T
-
-    # lables = ['goalA','goalB']
-    # for i in range(len(lables)):
-    #     plt.plot(x, y, label=lables[i])
-
     plt.ion()
-    line, = plt.plot(x, y)
+
+    prior =  [0.5, 0.5]
+    x = np.arange(2)
+    y = np.array(prior).T
+
+    lables = ['goalA']
+    for i in range(len(lables)):
+        line, = plt.plot(x, prior[i], label=lables[i])
+
+    # line, = plt.plot(x, y)
     ax = plt.gca()
 
     state = initState
     nextState = initState
     while True:
-        action = policy(state)
+        actionDists = policy(state)
+        action = [choose(action) for choose, action in zip(chooseActionList, actionDists)]
 
         goalPosteriori = inferGoalWithAction(state, nextState, prior)
         goalPosteriorList.append(goalPosteriori)
+
         newNextState = transition(nextState, action)
         nextState = newNextState
         state = nextState
