@@ -1,5 +1,11 @@
 import numpy as np
+import itertools as it
 from scipy import stats
+import os
+import sys
+sys.path.append(os.path.join(os.path.join(os.path.dirname(__file__), '..')))
+from src.sheepPolicy import GenerateModel, ApproximatePolicy, restoreVariables
+
 
 class StayInBoundaryByReflectVelocity():
     def __init__(self, xBoundary, yBoundary):
@@ -24,6 +30,7 @@ class StayInBoundaryByReflectVelocity():
         checkedPosition = np.array([adjustedX, adjustedY])
         checkedVelocity = np.array([adjustedVelX, adjustedVelY])
         return checkedPosition, checkedVelocity
+
 
 class UnpackCenterControlAction:
     def __init__(self, centerControlIndexList):
@@ -52,6 +59,7 @@ class TransiteForNoPhysicsWithCenterControlAction():
         newState, newAction = list(zip(*checkedNewStateAndVelocities))
         return newState
 
+
 def chooseGreedyAction(actionDist):
     actions = list(actionDist.keys())
     probs = list(actionDist.values())
@@ -61,8 +69,7 @@ def chooseGreedyAction(actionDist):
     return selectedAction
 
 
-def calculatePdf(direction, degeree):
-    x = direction - degeree
+def calculatePdf(x, assumePrecision):
     return stats.vonmises.pdf(x, assumePrecision) * 2
 
 
@@ -70,18 +77,19 @@ def vecToAngle(vector):
     return np.angle(complex(vector[0], vector[1]))
 
 
-class TansferHumanActionToDiscreteDirection():
-    def __init__(self, assumePrecision):
-        self.vecToAngle = lambda vector: np.angle(complex(vector[0], vector[1]))
+class TansferContinuousnActionToDiscreteAction():
+    def __init__(self, assumePrecision, actionSpace, chooseAction):
+        self.assumePrecision = assumePrecision
         self.actionSpace = actionSpace
+        self.vecToAngle = lambda vector: np.angle(complex(vector[0], vector[1]))
         self.degreeList = [self.vecToAngle(vector) for vector in self.actionSpace]
         self.chooseAction = chooseAction
 
-    def __call__(self, humanAction):
+    def __call__(self, continuousAction):
         actionDict = {}
-        if humanAction != (0, 0):
-            humanDirection = self.vecToAngle(humanAction)
-            pdf = np.array([calculatePdf(humanDirection, degeree) for degree in self.degreeList])
+        if continuousAction != (0, 0):
+            discreteAction = self.vecToAngle(continuousAction)
+            pdf = np.array([calculatePdf(discreteAction - degree, self.assumePrecision) for degree in self.degreeList])
             normProb = pdf / pdf.sum()
             [actionDict.update({action: prob}) for action, prob in zip(actionSpace, normProb)]
             actionDict.update({(0, 0): 0})
@@ -92,14 +100,38 @@ class TansferHumanActionToDiscreteDirection():
         return action
 
 
-# class ComposeCenterControl:
-#     def __init__(self,):
+class InferGoalWithAction:
+    def __init__(self, getPolicyLikelihoodList, tansferContinuousnActionToDiscreteAction):
+        self.getPolicyLikelihoodList = getPolicyLikelihoodList
+        self.tansferContinuousnActionToDiscreteAction = tansferContinuousnActionToDiscreteAction
 
-#     def __call__(self, humanAction, ):
+    def __call__(self, priorList, state, action):
+        sheepAction, wolvesAction = action
+        centrolCentrolAction = (self.tansferContinuousnActionToDiscreteAction(action) for action in wolvesAction)
+        likelihoodList = self.getPolicyLikelihoodList(state, action)
+        evidence = sum([prior * likelihood for (prior, likelihood) in zip(priorList, likelihoodList)])
+        posteriorList = [prior * likelihood / evidence for (prior, likelihood) in zip(priorList, likelihoodList)]
+        return posteriorList
 
-#         return centerControlActionDict
 
-class CalTransitionLikelihood:
+def calTargetFromPosterior(posteriorList):
+    target = np.max(posteriorList)
+    return target
+
+
+class GetContinualTransitionLikelihood:
+    def __init__(self, transitAgents, tansferContinuousnActionToDiscreteAction):
+        self.transitAgents = transitAgents
+        self.tansferContinuousnActionToDiscreteAction = tansferContinuousnActionToDiscreteAction
+
+    def __call__(self, state, allAgentsActions, nextState):
+        actions = [self.tansferContinuousnActionToDiscreteAction(action) for action in allAgentsActions]
+        agentsNextIntendedState = self.transitAgents(state, actions)
+        transitionLikelihood = 1 if np.all(agentsNextIntendedState == nextState) else 0
+        return transitionLikelihood
+
+
+class GetTransitionLikelihood:
     def __init__(self, transitAgents):
         self.transitAgents = transitAgents
 
@@ -109,27 +141,26 @@ class CalTransitionLikelihood:
         return transitionLikelihood
 
 
-class CenterControlPolicyLikelihood:
-    def __init__(self, NNPolicy):
-        self.NNPolicy = NNPolicy
+class GetCenterControlPolicyLikelihood:
+    def __init__(self, centerControlPolicy):
+        self.centerControlPolicy = centerControlPolicy
 
     def __call__(self, state, action):
         sheepStates, wolvesState = state
         wolfState1, wolfState2 = wolvesState
-        likelihoodList = [self.NNPolicy[sheepState, wolfState1, wolfState2].get(action) for sheepState in sheepStates]
+
+        likelihoodList = [self.centerControlPolicy[sheepState, wolfState1, wolfState2].get(weAction) for sheepState in sheepStates]
         return likelihoodList
 
 
-class InferGoalWithoutAction:
-    def __init__(self, calLikelihood):
-        self.transiteLikelihood = transiteLikelihood
+class InferWeWithoutAction:
+    def __init__(self, getTransitionLikelihood, getPolicyLikelihoodList, weActionSpace):
+        self.getTransitionLikelihood = getTransitionLikelihood
         self.getPolicyLikelihoodList = getPolicyLikelihoodList
-        self.actionSpace = actionSpace
+        self.weActionSpace = weActionSpace
 
     def __call__(self, state, nextState, prior):
-
-        likelihoodList = [[self.transiteLikelihood(state, action, nextState) * policyLikelihood for policyLikelihood in self.getPolicyLikelihoodList(state, action)] for action in self.actionSpace]
-
+        likelihoodList = [[self.getTransitionLikelihood(state, action, nextState) * policyLikelihood for policyLikelihood in self.getPolicyLikelihoodList(state, action)] for action in self.weActionSpace]
         likelihoodActionsIntegratedOut = np.sum(np.array(likelihoodList), axis=0)
 
         priorLikelihoodPair = zip(prior, likelihoodActionsIntegratedOut)
@@ -137,25 +168,7 @@ class InferGoalWithoutAction:
         evidence = sum(posteriorUnnormalized)
 
         posterior = [posterior / evidence for posterior in posteriorUnnormalized]
-
         return posterior
-
-
-class InferGoalWithAction:
-    def __init__(self, partenerPolicy):
-        self.calLikelihood = partenerPolicy
-
-    def __call__(self, priorList, wolvesState, wolvesAction, sheepStates):
-        centrolCentrolAction = (self.tansferHumanActionToDiscreteDirection(action) for action in wolvesAction)
-        likelihoodList = [self.calLikelihood(sheepState, wolvesState, centrolCentrolAction) for sheepState in sheepStates]
-        evidence = sum([prior * likelihood for (prior, likelihood) in zip(priorList, likelihoodList)])
-        posteriorList = [prior * likelihood / evidence for (prior, likelihood) in zip(priorList, likelihoodList)]
-        return posteriorList
-
-
-def calTargetFromPosterior(posteriorList):
-    target = np.max(posteriorList)
-    return target
 
 
 class InferCommitmentAndDraw:
@@ -169,7 +182,8 @@ class InferCommitmentAndDraw:
 
 
 if __name__ == '__main__':
-
+    sheepId = 0
+    wolvesId = 2
     actionSpace = [(10, 0), (7, 7), (0, 10), (-7, 7),
                    (-10, 0), (-7, -7), (0, -10), (7, -7), (0, 0)]
     preyPowerRatio = 3
@@ -177,7 +191,7 @@ if __name__ == '__main__':
     predatorPowerRatio = 2
     wolfActionOneSpace = list(map(tuple, np.array(actionSpace) * predatorPowerRatio))
     wolfActionTwoSpace = list(map(tuple, np.array(actionSpace) * predatorPowerRatio))
-    wolvesActionSpace = list(product(wolfActionOneSpace, wolfActionTwoSpace))
+    wolvesActionSpace = list(it.product(wolfActionOneSpace, wolfActionTwoSpace))
 
     numStateSpace = 6
     numSheepActionSpace = len(sheepActionSpace)
@@ -188,31 +202,23 @@ if __name__ == '__main__':
     valueLayerWidths = [128]
     generateSheepModel = GenerateModel(numStateSpace, numSheepActionSpace, regularizationFactor)
     generateWolvesModel = GenerateModel(numStateSpace, numWolvesActionSpace, regularizationFactor)
-    generateModelList = [generateSheepModel, generateWolvesModel]
+    generateModelList = [generateSheepModel, generateSheepModel, generateWolvesModel]
 
     sheepDepth = 5
     wolfDepth = 9
-    depthList = [sheepDepth, wolfDepth]
+    depthList = [sheepDepth, sheepDepth, wolfDepth]
     resBlockSize = 2
     dropoutRate = 0.0
     initializationMethod = 'uniform'
-    trainableAgentIds = [sheepId, wolvesId]
 
     multiAgentNNmodel = [generateModel(sharedWidths * depth, actionLayerWidths, valueLayerWidths, resBlockSize, initializationMethod, dropoutRate) for depth, generateModel in zip(depthList, generateModelList)]
 
-    # load Model save dir
-    NNModelSaveExtension = ''
-    NNModelSaveDirectory = os.path.join(dirName, '..', '..', '..', 'data', 'multiAgentTrain', 'multiMCTSAgentResNetNoPhysicsCenterControlWithPreTrain', 'NNModelRes')
-    if not os.path.exists(NNModelSaveDirectory):
-        os.makedirs(NNModelSaveDirectory)
-
-    generateNNModelSavePath = GetSavePath(NNModelSaveDirectory, NNModelSaveExtension, fixedParameters)
-    wolfModelPath=os.path.join(dirName,'preTrainModel','agentId=1_depth=9_learningRate=0.0001_maxRunningSteps=100_miniBatchSize=256_numSimulations=200_trainSteps=50000')
+    wolfModelPath = os.path.join('..', 'preTrainModel', 'agentId=1_depth=9_learningRate=0.0001_maxRunningSteps=100_miniBatchSize=256_numSimulations=200_trainSteps=50000')
     restoredNNModel = restoreVariables(multiAgentNNmodel[wolvesId], wolfModelPath)
     multiAgentNNmodel[wolvesId] = restoredNNModel
-    wolfPolicy = ApproximatePolicy(multiAgentNNmodel[wolvesId], wolvesActionSpace)
+    centerControlPolicy = ApproximatePolicy(multiAgentNNmodel[wolvesId], wolvesActionSpace)
 
-    sheepModelPath=os.path.join(dirName,'preTrainModel','agentId=0_depth=5_learningRate=0.0001_maxRunningSteps=150_miniBatchSize=256_numSimulations=200_trainSteps=50000')
+    sheepModelPath = os.path.join('..', 'preTrainModel', 'agentId=0_depth=5_learningRate=0.0001_maxRunningSteps=150_miniBatchSize=256_numSimulations=200_trainSteps=50000')
     sheepTrainedModel = restoreVariables(multiAgentNNmodel[sheepId], sheepModelPath)
     sheepPolicy = ApproximatePolicy(sheepTrainedModel, sheepActionSpace)
 
@@ -220,28 +226,35 @@ if __name__ == '__main__':
 
     chooseActionList = [chooseGreedyAction, chooseGreedyAction]
 
+    stayInBoundaryByReflectVelocity = StayInBoundaryByReflectVelocity(xBoundary, yBoundary)
+    unpackCenterControlAction = UnpackCenterControlAction(centerControlIndexList)
+    transitAgents = TransiteForNoPhysicsWithCenterControlAction(stayInBoundaryByReflectVelocity, unpackCenterControlAction)
+    getTransitionLikelihood = GetTransitionLikelihood(transitAgents)
+    getPolicyLikelihoodList = GetCenterControlPolicyLikelihood(centerControlPolicy)
+    inferGoalWithoutAction = InferWeWithoutAction(getTransitionLikelihood, getPolicyLikelihoodList, wolvesActionSpace)
+
     import numpy as np
     import matplotlib.pyplot as plt
     plt.ion()
 
-    prior =  [0.5, 0.5]
+    prior = [0.5, 0.5]
     x = np.arange(2)
     y = np.array(prior).T
 
     lables = ['goalA']
     for i in range(len(lables)):
-        line, = plt.plot(x, prior[i], label=lables[i])
+        line, = plt.plot(x, y, label=lables[i])
 
     # line, = plt.plot(x, y)
     ax = plt.gca()
-
-    state = initState
+    initState = ((0, 0), (10, 10), (20, 20))
+    state = initState,
     nextState = initState
     while True:
         actionDists = policy(state)
         action = [choose(action) for choose, action in zip(chooseActionList, actionDists)]
 
-        goalPosteriori = inferGoalWithAction(state, nextState, prior)
+        goalPosteriori = inferGoalWithoutAction(state, nextState, prior)
         goalPosteriorList.append(goalPosteriori)
 
         newNextState = transition(nextState, action)

@@ -36,7 +36,6 @@ class InferCurrentWolf:
             wolfVectorList = [dequeState[i][wolfId] - dequeState[i - 1][wolfId]for i in range(1, len(dequeState))]
             pLikelihoodList = np.array([self.computeLikelihoodByHeatSeeking(v1, v2) for v1, v2 in zip(heatSeekingVectorList, wolfVectorList)])
             pLikeliMean = np.mean(pLikelihoodList)
-            print(sheepId, wolfId, pLikeliMean)
             goal[i] = 0 < pLikeliMean
         return goal
 
