@@ -31,6 +31,7 @@ class MeasureCrossEntropy:
         self.priorIndex = priorIndex
 
     def __call__(self, trajectory):
+
         priors = [timeStep[self.priorIndex] for timeStep in trajectory]
         baseDistributions = [list(prior[self.baseId].values())
                 for prior in priors] 
@@ -38,7 +39,7 @@ class MeasureCrossEntropy:
                 for prior in priors] 
         crossEntropies = [stats.entropy(baseDistribution) + stats.entropy(baseDistribution, nonBaseDistribution) 
                 for baseDistribution, nonBaseDistribution in zip(baseDistributions, nonBaseDistributions)]
-        print(priors[3])
+        print(priors[-1])
         return crossEntropies
 
 class Interpolate1dData:
@@ -57,7 +58,7 @@ class Interpolate1dData:
 def main():
     # manipulated variables
     manipulatedVariables = OrderedDict()
-    manipulatedVariables['perceptNoise'] = [1e-1]
+    manipulatedVariables['perceptNoise'] = [1e-1, 1e1, 2e1]
     manipulatedVariables['maxRunningSteps'] = [100]
     levelNames = list(manipulatedVariables.keys())
     levelValues = list(manipulatedVariables.values())
@@ -74,14 +75,14 @@ def main():
         os.makedirs(trajectoryDirectory)
 
     softParameterInPlanning = 2.5
-    trajectoryFixedParameters = {'priorType': 'uniformPrior', 'sheepPolicy':'NNPolicy', 'wolfPolicy':'NNPolicy',
+    trajectoryFixedParameters = {'priorType': 'uniformPrior', 'sheepPolicy':'sampleNNPolicy', 'wolfPolicy':'NNPolicy',
             'policySoftParameter': softParameterInPlanning, 'chooseAction': 'sample'}
     trajectoryExtension = '.pickle'
     getTrajectorySavePath = GetSavePath(trajectoryDirectory, trajectoryExtension, trajectoryFixedParameters)
     
     # Compute Statistics on the Trajectories
     loadTrajectories = LoadTrajectories(getTrajectorySavePath, loadFromPickle)
-    loadTrajectoriesFromDf = lambda df: loadTrajectories(readParametersFromDf(df))
+    loadTrajectoriesFromDf = lambda df: loadTrajectories(readParametersFromDf(df))[1:]
     
     wolfImaginedWeId = [2, 3]
     priorIndexinTimestep = 3
@@ -106,7 +107,7 @@ def main():
             #print(grp)
             #print(df)
             #print(max(AA))
-            #print(AA)
+            print(AA)
             df.plot.line(ax = axForDraw, label = 'perceptNoise ={}'.format(perceptNoise), y = 'mean', yerr = 'se', ylim = (0, 1))
         plotCounter = plotCounter + 1
 

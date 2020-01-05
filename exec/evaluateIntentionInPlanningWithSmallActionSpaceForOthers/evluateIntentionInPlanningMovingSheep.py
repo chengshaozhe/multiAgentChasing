@@ -68,7 +68,7 @@ def main():
     # manipulated variables
     manipulatedVariables = OrderedDict()
     manipulatedVariables['numActionSpaceForOthers'] = [2, 3, 5]
-    manipulatedVariables['maxRunningSteps'] = [50, 100]
+    manipulatedVariables['maxRunningSteps'] = [100]
     levelNames = list(manipulatedVariables.keys())
     levelValues = list(manipulatedVariables.values())
     modelIndex = pd.MultiIndex.from_product(levelValues, names=levelNames)
@@ -147,7 +147,7 @@ def main():
     # Transition Likelihood
     composeGetOwnState = lambda imaginedWeId: lambda state: np.array(state)[imaginedWeId]
     getOwnStates = [composeGetOwnState(imaginedWeId) for imaginedWeId in imaginedWeIdsForInferenceSubjects]
-    perceptNoise = 4e1
+    perceptNoise = 2e1
     percept = lambda hypothesisNextState, nextState: scipy.stats.multivariate_normal.pdf(
             hypothesisNextState[0], np.array(nextState)[0], np.diag([1e-1**2] * len(nextState[0]))) * scipy.stats.multivariate_normal.pdf(
                     hypothesisNextState[1], np.array(nextState)[1], np.diag([perceptNoise**2] * len(nextState[1])))
@@ -225,7 +225,7 @@ def main():
     if not os.path.exists(trajectoryDirectory):
         os.makedirs(trajectoryDirectory)
 
-    trajectoryFixedParameters = {'priorType': 'uniformPrior', 'sheepPolicy':'NNPolicy', 'wolfPolicy':'NNPolicy',
+    trajectoryFixedParameters = {'priorType': 'uniformPrior', 'sheepPolicy':'sampleNNPolicy', 'wolfPolicy':'NNPolicy',
         'policySoftParameter': softParameterInPlanning, 'chooseAction': 'sample', 'perceptNoise': perceptNoise}
     trajectoryExtension = '.pickle'
     getTrajectorySavePath = GetSavePath(trajectoryDirectory, trajectoryExtension, trajectoryFixedParameters)
@@ -244,24 +244,25 @@ def main():
     wolfImaginedWeId = [2, 3]
     stateIndexInTimestep = 0
     judgeSuccessCatchOrEscape = lambda booleanSign: int(booleanSign)
-    measureIntentionArcheivement = lambda df: MeasureIntentionArcheivement(possibleIntentionIds, wolfImaginedWeId, stateIndexInTimestep, posIndexInState, killzoneRadius, judgeSuccessCatchOrEscape)
-    #measureIntentionArcheivement = lambda df: lambda trajectory: int(len(trajectory) < readParametersFromDf(df)['maxRunningSteps']) - 1 / readParametersFromDf(df)['maxRunningSteps'] * len(trajectory) 
+    #measureIntentionArcheivement = lambda df: MeasureIntentionArcheivement(possibleIntentionIds, wolfImaginedWeId, stateIndexInTimestep, posIndexInState, killzoneRadius, judgeSuccessCatchOrEscape)
+    measureIntentionArcheivement = lambda df: lambda trajectory: int(len(trajectory) < readParametersFromDf(df)['maxRunningSteps']) - 1 / readParametersFromDf(df)['maxRunningSteps'] * len(trajectory) 
     computeStatistics = ComputeStatistics(loadTrajectoriesFromDf, measureIntentionArcheivement)
     statisticsDf = toSplitFrame.groupby(levelNames).apply(computeStatistics)
     fig = plt.figure()
-    numColumns = len(manipulatedVariables['numActionSpaceForOthers'])
+    numColumns = 1#len(manipulatedVariables['numActionSpaceForOthers'])
     numRows = len(manipulatedVariables['maxRunningSteps'])
     plotCounter = 1
 
     for maxRunningSteps, group in statisticsDf.groupby('maxRunningSteps'):
         group.index = group.index.droplevel('maxRunningSteps')
-        for numActionSpaceForOthers, grp in group.groupby('numActionSpaceForOthers'):
-            axForDraw = fig.add_subplot(numRows, numColumns, plotCounter)
-            if plotCounter % numColumns == 1:
-                axForDraw.set_ylabel('maxRunningSteps = {}'.format(maxRunningSteps))
-            if plotCounter <= numColumns:
-                axForDraw.set_title('numActionSpaceForOthers = {}'.format(numActionSpaceForOthers))
-            df = pd.DataFrame(grp.values[0].tolist(), columns = possiblePreyIds, index = ['mean','se']).T
+        axForDraw = fig.add_subplot(numRows, numColumns, plotCounter)
+        if plotCounter % numColumns == 0 :
+            axForDraw.set_ylabel('maxRunningSteps = {}'.format(maxRunningSteps))
+            group.plot.line(ax = axForDraw, y = 'mean', yerr = 'se', ylim = (0, 0.5), marker = 'o')
+        #for numActionSpaceForOthers, grp in group.groupby('numActionSpaceForOthers'):
+            #if plotCounter <= numColumns:
+            #    axForDraw.set_title('numActionSpaceForOthers = {}'.format(numActionSpaceForOthers))
+            #df = pd.DataFrame(grp.values[0].tolist(), columns = possiblePreyIds, index = ['mean','se']).T
             #df = grp
             #__import__('ipdb').set_trace()
             df.plot.bar(ax = axForDraw, y = 'mean', yerr = 'se', ylim = (-0.5, 1))

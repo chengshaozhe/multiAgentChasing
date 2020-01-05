@@ -1,6 +1,6 @@
 import numpy as np
 import random
-
+import copy 
 
 def stationaryAgentPolicy(state):
     return {(0, 0): 1}
@@ -56,7 +56,7 @@ class PolicyOnChangableIntention:
         self.chooseIntention = chooseIntention
         self.getStateForPolicyGivenIntention = getStateForPolicyGivenIntention
         self.policyGivenIntention = policyGivenIntention
-        self.formerIntentionPriors = [intentionPrior.copy()]
+        self.formerIntentionPriors = [self.intentionPrior.copy()]
 
     def __call__(self, state):
         if not isinstance(self.lastState, type(None)):
@@ -87,10 +87,11 @@ class ResetPolicy:
         self.attributeValues = attributeValues
         self.policyObjects = policyObjects
         self.returnAttributes = returnAttributes
-
+    
     def __call__(self):
-        returnAttributeValues = list(zip(*[list(zip(*[getattr(individualPolicy, attribute) for individualPolicy in self.policyObjects])) 
-            for attribute in self.returnAttributes]))
-        [[setattr(policy, attribute, value) for attribute, value in attributeValue.items()] 
+        attributesForGet = self.returnAttributes.copy()
+        returnAttributeValues = list(zip(*[list(zip(*[getattr(individualPolicy, attribute).copy() for individualPolicy in self.policyObjects])) 
+            for attribute in attributesForGet]))
+        [[setattr(policy, attribute, value) for attribute, value in zip(list(attributeValue.keys()), copy.deepcopy(list(attributeValue.values())))] 
                 for policy, attributeValue in zip(self.policyObjects, self.attributeValues)]
         return returnAttributeValues

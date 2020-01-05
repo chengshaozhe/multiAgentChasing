@@ -220,13 +220,13 @@ def main():
     if not os.path.exists(trajectoryDirectory):
         os.makedirs(trajectoryDirectory)
 
-    trajectoryFixedParameters = {'priorType': 'uniformPrior', 'sheepPolicy':'NNPolicy', 'wolfPolicy':'NNPolicy',
+    trajectoryFixedParameters = {'priorType': 'uniformPrior', 'sheepPolicy':'sampleNNPolicy', 'wolfPolicy':'NNPolicy',
             'policySoftParameter': softParameterInPlanning, 'chooseAction': 'sample', 'maxRunningSteps': maxRunningSteps, 'perceptNoise':perceptNoise}
     trajectoryExtension = '.pickle'
     getTrajectorySavePath = GetSavePath(trajectoryDirectory, trajectoryExtension, trajectoryFixedParameters)
     saveTrajectoryByParameters = lambda trajectories, parameters: saveToPickle(trajectories, getTrajectorySavePath(parameters))
    
-    numTrajectories = 200
+    numTrajectories = 150
     sampleTrajectoriesForConditions = SampleTrjactoriesForConditions(numTrajectories, composeIndividualPoliciesByEvaParameters,
             composeResetPolicy, composeSampleTrajectory, saveTrajectoryByParameters)
     [sampleTrajectoriesForConditions(para) for para in parametersAllCondtion]
