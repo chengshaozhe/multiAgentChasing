@@ -9,8 +9,8 @@ class GetAgentPosFromState:
 
     def __call__(self, state):
         state = np.asarray(state)
-        agentPos = state[self.agentId][self.posIndex]
-
+        agentStates = state[self.agentId]
+        agentPos = np.asarray([state[self.posIndex] for state in agentStates])
         return agentPos
 
 class GetStateForPolicyGivenIntention:

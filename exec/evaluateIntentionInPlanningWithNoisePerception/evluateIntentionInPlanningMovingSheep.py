@@ -67,7 +67,7 @@ class SampleTrjactoriesForConditions:
 def main():
     # manipulated variables
     manipulatedVariables = OrderedDict()
-    manipulatedVariables['perceptNoiseForAll'] = [1e-1, 2e1, 4e1, 8e1, 1e3]
+    manipulatedVariables['perceptNoiseForAll'] = [1e-1, 4e1, 8e1, 1e3]
     manipulatedVariables['maxRunningSteps'] = [100]
     levelNames = list(manipulatedVariables.keys())
     levelValues = list(manipulatedVariables.values())
@@ -159,10 +159,8 @@ def main():
     variables = [intentionSpace, actionSpaceInInference]
     jointHypothesisSpace = pd.MultiIndex.from_product(variables, names=['intention', 'action'])
     concernedHypothesisVariable = ['intention']
-    composePercept = lambda perceptNoise: lambda state: np.array([np.random.multivariate_normal(agentState, np.diag([perceptNoise**2] * len(agentState))) 
-        for agentState in state]) 
     composeInferImaginedWe = lambda perceptNoise: [InferOneStep(priorDecayRate, jointHypothesisSpace,
-            concernedHypothesisVariable, calJointLikelihood, composePercept(perceptNoise)) for calJointLikelihood in getCalJointLikelihood(perceptNoise)]
+            concernedHypothesisVariable, calJointLikelihood) for calJointLikelihood in getCalJointLikelihood(perceptNoise)]
     getUpdateIntention = lambda perceptNoise: [sheepUpdateIntentionMethod, sheepUpdateIntentionMethod] + composeInferImaginedWe(perceptNoise)
     chooseIntention = sampleFromDistribution
 
@@ -214,12 +212,12 @@ def main():
     composeSampleTrajectory = lambda maxRunningSteps, resetPolicy: SampleTrajectory(maxRunningSteps, transit, isTerminal, reset, assignIndividualActionMethods, resetPolicy)
 
     DIRNAME = os.path.dirname(__file__)
-    trajectoryDirectory = os.path.join(DIRNAME, '..', '..', 'data', 'evaluateIntentionInPlanningWithNoisyState',
+    trajectoryDirectory = os.path.join(DIRNAME, '..', '..', 'data', 'evaluateIntentionInPlanningWithNoisePerception',
                                     'trajectories')
     if not os.path.exists(trajectoryDirectory):
         os.makedirs(trajectoryDirectory)
 
-    trajectoryFixedParameters = {'priorType': 'uniformPrior', 'sheepPolicy':'sampleNNPolicy', 'wolfPolicy':'NNPolicy',
+    trajectoryFixedParameters = {'priorType': 'uniformPrior', 'sheepPolicy':'NNPolicy', 'wolfPolicy':'NNPolicy',
             'policySoftParameter': softParameterInPlanning, 'chooseAction': 'sample'}
     trajectoryExtension = '.pickle'
     getTrajectorySavePath = GetSavePath(trajectoryDirectory, trajectoryExtension, trajectoryFixedParameters)
@@ -228,7 +226,7 @@ def main():
     numTrajectories = 200
     sampleTrajectoriesForConditions = SampleTrjactoriesForConditions(numTrajectories, composeIndividualPoliciesByEvaParameters,
             composeResetPolicy, composeSampleTrajectory, saveTrajectoryByParameters)
-    [sampleTrajectoriesForConditions(para) for para in parametersAllCondtion]
+    #[sampleTrajectoriesForConditions(para) for para in parametersAllCondtion]
 
     # Compute Statistics on the Trajectories
     loadTrajectories = LoadTrajectories(getTrajectorySavePath, loadFromPickle)
@@ -254,7 +252,7 @@ def main():
         axForDraw = fig.add_subplot(numRows, numColumns, plotCounter)
         axForDraw.set_ylabel('Accumulated Reward')
         group.index.name = 'Action Perception Noise'
-        group.plot.line(ax = axForDraw, y = 'mean', yerr = 'se', xlim = (-5, 1005), ylim = (-1, 1), marker = 'o', rot = 0 )
+        group.plot.line(ax = axForDraw, y = 'mean', yerr = 'se', xlim = (-5, 1005), ylim = (-1, 0.5), marker = 'o', rot = 0 )
         #for perceptNoise, grp in group.groupby('perceptNoise'):
             #grp.index = grp.index.droplevel('perceptNoise')
             #if plotCounter <= numColumns:

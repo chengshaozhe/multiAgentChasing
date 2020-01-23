@@ -13,30 +13,33 @@ class CalPolicyLikelihood:
         return policyLikelihood
 
 class CalTransitionLikelihood:
-    def __init__(self, getOwnState, transit, percept):
+    def __init__(self, getOwnState, transitLikelihoodFunction):
         self.getOwnState = getOwnState
-        self.transit = transit
-        self.percept = percept
+        self.transitLikelihoodFunction = transitLikelihoodFunction
 
     def __call__(self, state, ownAction, nextState):
         ownState = self.getOwnState(state)
         ownNextState = self.getOwnState(nextState)
-        hypothesisNextState = self.transit(ownState, ownAction)
-        transitionLikelihood = self.percept(hypothesisNextState, ownNextState)
+        transitionLikelihood = self.transitLikelihoodFunction(ownState, ownAction, ownNextState)
         return transitionLikelihood
 
 class InferOneStep:
-    def __init__(self, priorDecayRate, jointHypothesisSpace, concernedHypothesisVariable, calJointLikelihood):	
+    def __init__(self, priorDecayRate, jointHypothesisSpace, concernedHypothesisVariable, calJointLikelihood, perceptNextState = None):	
         self.priorDecayRate = priorDecayRate
         self.jointHypothesisSpace = jointHypothesisSpace
         self.concernedHypothesisVariable = concernedHypothesisVariable	
         self.calJointLikelihood = calJointLikelihood
+        self.perceptNextState = perceptNextState
 
     def __call__(self, intentionPrior, state, nextState):
         jointHypothesisDf = pd.DataFrame(index = self.jointHypothesisSpace)
         intentions = jointHypothesisDf.index.get_level_values('intention')
         actions = jointHypothesisDf.index.get_level_values('action')
-        jointHypothesisDf['likelihood'] = [self.calJointLikelihood(intention, state, action, nextState) for intention, action in zip(intentions, actions)]
+        if self.perceptNextState:
+            perceivedNextState = self.perceptNextState(nextState)
+        else:
+            perceivedNextState = np.array(nextState)
+        jointHypothesisDf['likelihood'] = [self.calJointLikelihood(intention, state, action, perceivedNextState) for intention, action in zip(intentions, actions)]
         #__import__('ipdb').set_trace()
         #jointHypothesisDf['jointLikelihood'] = jointHypothesisDf.apply(lambda row: self.calJointLikelihood(row.name[0], state, row.name[1], nextState))
         marginalLikelihood = jointHypothesisDf.groupby(self.concernedHypothesisVariable).sum()
@@ -47,7 +50,6 @@ class InferOneStep:
         unnomalizedPosterior = {key: np.exp(decayedLogPrior[key] + np.log(oneStepLikelihood[key])) for key in list(intentionPrior.keys())}
         normalizedProbabilities = np.array(list(unnomalizedPosterior.values())) / np.sum(list(unnomalizedPosterior.values()))
         normalizedPosterior = dict(zip(list(unnomalizedPosterior.keys()),normalizedProbabilities))
-        #print(normalizedPosterior) 
         return normalizedPosterior
 
 class InferOnTrajectory:

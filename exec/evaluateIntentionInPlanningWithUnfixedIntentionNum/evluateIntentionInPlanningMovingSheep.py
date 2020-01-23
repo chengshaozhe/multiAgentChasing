@@ -65,7 +65,7 @@ class SampleTrjactoriesForConditions:
 def main():
     # manipulated variables
     manipulatedVariables = OrderedDict()
-    manipulatedVariables['numIntentions'] = [4, 8]
+    manipulatedVariables['numIntentions'] = [2, 4, 8]
     levelNames = list(manipulatedVariables.keys())
     levelValues = list(manipulatedVariables.values())
     modelIndex = pd.MultiIndex.from_product(levelValues, names=levelNames)
@@ -139,10 +139,10 @@ def main():
     composeGetOwnState = lambda imaginedWeId: lambda state: np.array(state)[imaginedWeId]
     getGetOwnStates = lambda numIntentions: [composeGetOwnState(imaginedWeId) for imaginedWeId in getImaginedWeIdsForInferenceSubject(numIntentions)]
     perceptNoise = 1e-1
-    percept = lambda hypothesisNextState, nextState: scipy.stats.multivariate_normal.pdf(
-            hypothesisNextState[0], np.array(nextState)[0], np.diag([1e-1**2] * len(nextState[0]))) * scipy.stats.multivariate_normal.pdf(
-                    hypothesisNextState[1], np.array(nextState)[1], np.diag([perceptNoise**2] * len(nextState[1])))
-    composeCalTransitionLikelihood = lambda numIntentions: [CalTransitionLikelihood(getOwnState, transit, percept) 
+    transitionLikelihoodFunction = lambda state, action, nextState: scipy.stats.multivariate_normal.pdf(
+            transit(state, action)[0], np.array(nextState)[0], np.diag([1e-1**2] * len(nextState[0]))) * scipy.stats.multivariate_normal.pdf(
+                    transit(state, action)[1], np.array(nextState)[1], np.diag([perceptNoise**2] * len(nextState[1])))
+    composeCalTransitionLikelihood = lambda numIntentions: [CalTransitionLikelihood(getOwnState, transitionLikelihoodFunction) 
             for getOwnState in getGetOwnStates(numIntentions)]
 
     # Joint Likelihood
@@ -200,7 +200,7 @@ def main():
                 composeUpdateIntention(numIntentions), getCentralControlPoliciesGivenIntentions(numIntentions))]
 
     getIndividualIdsForAllAgents = lambda numIntentions : list(range(numIntentions + 2))
-    composeChooseCentrolAction = lambda numIntentions: [sampleFromDistribution]* numIntentions + [sampleFromDistribution]* 2
+    composeChooseCentrolAction = lambda numIntentions: [maxFromDistribution]* numIntentions + [sampleFromDistribution]* 2
     composeAssignIndividualActionMethods = lambda numIntentions: [AssignCentralControlToIndividual(imaginedWeId, individualId, chooseAction) for imaginedWeId, individualId, chooseAction in
             zip(getImaginedWeIdsForAllAgents(numIntentions), getIndividualIdsForAllAgents(numIntentions), composeChooseCentrolAction(numIntentions))]
 
@@ -220,28 +220,30 @@ def main():
     if not os.path.exists(trajectoryDirectory):
         os.makedirs(trajectoryDirectory)
 
-    trajectoryFixedParameters = {'priorType': 'uniformPrior', 'sheepPolicy':'sampleNNPolicy', 'wolfPolicy':'NNPolicy',
+    trajectoryFixedParameters = {'priorType': 'uniformPrior', 'sheepPolicy':'NNPolicy', 'wolfPolicy':'NNPolicy',
             'policySoftParameter': softParameterInPlanning, 'chooseAction': 'sample', 'maxRunningSteps': maxRunningSteps, 'perceptNoise':perceptNoise}
     trajectoryExtension = '.pickle'
     getTrajectorySavePath = GetSavePath(trajectoryDirectory, trajectoryExtension, trajectoryFixedParameters)
     saveTrajectoryByParameters = lambda trajectories, parameters: saveToPickle(trajectories, getTrajectorySavePath(parameters))
    
-    numTrajectories = 150
+    numTrajectories = 180
     sampleTrajectoriesForConditions = SampleTrjactoriesForConditions(numTrajectories, composeIndividualPoliciesByEvaParameters,
             composeResetPolicy, composeSampleTrajectory, saveTrajectoryByParameters)
-    [sampleTrajectoriesForConditions(para) for para in parametersAllCondtion]
+    #[sampleTrajectoriesForConditions(para) for para in parametersAllCondtion]
 
     # Compute Statistics on the Trajectories
     loadTrajectories = LoadTrajectories(getTrajectorySavePath, loadFromPickle)
     loadTrajectoriesFromDf = lambda df: loadTrajectories(readParametersFromDf(df))
     
-    measureIntentionArcheivement = lambda df: lambda trajectory: int(len(trajectory) < maxRunningSteps)
+    measureIntentionArcheivement = lambda df: lambda trajectory: int(len(trajectory) < maxRunningSteps) - 1 / maxRunningSteps * len(trajectory)
     computeStatistics = ComputeStatistics(loadTrajectoriesFromDf, measureIntentionArcheivement)
     statisticsDf = toSplitFrame.groupby(levelNames).apply(computeStatistics)
+    #__import__('ipdb').set_trace()
     fig = plt.figure()
-    statisticsDf.plot(y = 'mean', yerr = 'se')
-    
-    plt.suptitle('Wolves Intention Archeivement Moving Sheeps')
+    statisticsDf.index.name = 'Set Size of Intentions'
+    ax = statisticsDf.plot(y = 'mean', yerr = 'se', ylim = (0, 0.5), xlim = (1.95, 8.05), rot = 0)
+    ax.set_ylabel('Accumulated Reward')
+    #plt.suptitle('Wolves Accumulated Rewards')
     plt.legend(loc='best')
     plt.show()
 

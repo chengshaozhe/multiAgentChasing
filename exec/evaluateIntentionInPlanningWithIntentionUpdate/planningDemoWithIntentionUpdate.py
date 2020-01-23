@@ -15,28 +15,11 @@ import pathos.multiprocessing as mp
 import pygame as pg
 from pygame.color import THECOLORS
 
-from src.visualization.drawDemo import DrawBackground, DrawState, ChaseTrialWithTraj
+from src.visualization.drawDemo import DrawBackground, DrawState, ChaseTrialWithTraj, InterpolateState
 from src.chooseFromDistribution import sampleFromDistribution, maxFromDistribution
 from src.trajectoriesSaveLoad import GetSavePath, readParametersFromDf, LoadTrajectories, SaveAllTrajectories, \
     GenerateAllSampleIndexSavePaths, saveToPickle, loadFromPickle
-
-
-class MeasureIntentionArcheivement:
-    def __init__(self, possibleIntentionIds, imaginedWeIds, stateIndex, posIndex, minDistance, judgeSuccessCatchOrEscape):
-        self.possibleIntentionIds = possibleIntentionIds
-        self.imaginedWeIds = imaginedWeIds
-        self.stateIndex = stateIndex
-        self.posIndex = posIndex
-        self.minDistance = minDistance
-        self.judgeSuccessCatchOrEscape = judgeSuccessCatchOrEscape
-
-    def __call__(self, trajectory):
-        lastState = np.array(trajectory[-1][self.stateIndex])
-        minL2DistancesBetweenImageinedWeAndIntention = [min([np.linalg.norm(lastState[subjectIndividualId][self.posIndex] - lastState[intentionIndividualId][self.posIndex]) 
-            for subjectIndividualId, intentionIndividualId in it.product(self.imaginedWeIds, intentionId)]) for intentionId in self.possibleIntentionIds]
-        areDistancesInMin = [distance <= self.minDistance for distance in minL2DistancesBetweenImageinedWeAndIntention]
-        successArcheivement = [self.judgeSuccessCatchOrEscape(booleanInMinDistance) for booleanInMinDistance in areDistancesInMin]
-        return successArcheivement
+from src.MDPChasing.envNoPhysics import TransitForNoPhysics, StayInBoundaryByReflectVelocity
 
 def main():
     DIRNAME = os.path.dirname(__file__)
@@ -54,8 +37,8 @@ def main():
 
     # Compute Statistics on the Trajectories
     loadTrajectories = LoadTrajectories(getTrajectorySavePath, loadFromPickle)
-    trajectoryParameters = {'updateIntention': 'inferImaginedWe'}
-    #trajectoryParameters = {'updateIntention': 'False'}
+    #trajectoryParameters = {'updateIntention': 'inferImaginedWe'}
+    trajectoryParameters = {'updateIntention': 'FalseSeperateIntention'}
     trajectories = loadTrajectories(trajectoryParameters) 
     # generate demo image
     screenWidth = 600
@@ -69,7 +52,7 @@ def main():
     drawBackground = DrawBackground(screen, screenColor, xBoundary, yBoundary, lineColor, lineWidth)
     
     FPS = 20
-    circleColorSpace = [THECOLORS['red'], THECOLORS['green'], THECOLORS['blue'], THECOLORS['blue']]
+    circleColorSpace = [THECOLORS['green'], THECOLORS['green'], THECOLORS['red'], THECOLORS['red']]
     circleSize = 10
     positionIndex = [0, 1]
     agentIdsToDraw = list(range(4))
@@ -84,11 +67,20 @@ def main():
     updateColorSpaceByPosterior = lambda originalColorSpace, posterior : originalColorSpace
     drawState = DrawState(FPS, screen, circleColorSpace, circleSize, agentIdsToDraw, positionIndex, saveImage, saveImageDir, drawBackground, updateColorSpaceByPosterior)
     
+    # MDP Env
+    xBoundary = [0,600]
+    yBoundary = [0,600]
+    stayInBoundaryByReflectVelocity = StayInBoundaryByReflectVelocity(xBoundary, yBoundary)
+    transit = TransitForNoPhysics(stayInBoundaryByReflectVelocity)
+    numFramesToInterpolate = 3
+    interpolateState = InterpolateState(numFramesToInterpolate, transit)
+    
     stateIndexInTimeStep = 0
-    chaseTrial = ChaseTrialWithTraj(stateIndexInTimeStep, drawState)
+    actionIndexInTimeStep = 1
+    chaseTrial = ChaseTrialWithTraj(stateIndexInTimeStep, drawState, interpolateState, actionIndexInTimeStep)
    
     print(len(trajectories))
-    [chaseTrial(trajectory) for trajectory in np.array(trajectories)[0:10]]
+    [chaseTrial(trajectory) for trajectory in np.array(trajectories)[11:20]]
 
 if __name__ == '__main__':
     main()
