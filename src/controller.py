@@ -121,8 +121,8 @@ class HumanController():
         return targetPositions, playerPositions, action, newStopwatch, screen, timeStepforDraw
 
 
-def calculateSoftmaxProbability(probabilityList, beita):
-    newProbabilityList = list(np.divide(np.exp(np.multiply(beita, probabilityList)), np.sum(np.exp(np.multiply(beita, probabilityList)))))
+def calculateSoftmaxProbability(probabilityList, beta):
+    newProbabilityList = list(np.divide(np.exp(np.multiply(beta, probabilityList)), np.sum(np.exp(np.multiply(beta, probabilityList)))))
     return newProbabilityList
 
 

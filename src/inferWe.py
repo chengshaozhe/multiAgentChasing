@@ -222,11 +222,14 @@ if __name__ == '__main__':
     sheepTrainedModel = restoreVariables(multiAgentNNmodel[sheepId], sheepModelPath)
     sheepPolicy = ApproximatePolicy(sheepTrainedModel, sheepActionSpace)
 
-    def policy(state): return [sheepPolicy(state), wolfPolicy(state)]
+    def policy(state): return [sheepPolicy(state), centerControlPolicy(state)]
 
     chooseActionList = [chooseGreedyAction, chooseGreedyAction]
 
+    xBoundary = [0, 800]
+    yBoundary = [0, 800]
     stayInBoundaryByReflectVelocity = StayInBoundaryByReflectVelocity(xBoundary, yBoundary)
+    centerControlIndexList = 1
     unpackCenterControlAction = UnpackCenterControlAction(centerControlIndexList)
     transitAgents = TransiteForNoPhysicsWithCenterControlAction(stayInBoundaryByReflectVelocity, unpackCenterControlAction)
     getTransitionLikelihood = GetTransitionLikelihood(transitAgents)

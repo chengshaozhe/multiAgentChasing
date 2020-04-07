@@ -51,7 +51,7 @@ def main():
     textColorTuple = THECOLORS['green']
     stopwatchEvent = pg.USEREVENT + 1
 
-    saveImage = True
+    saveImage = False
     killzone = 2
     wolfSpeedRatio = 1
 
@@ -82,16 +82,15 @@ def main():
     xBoundary = [bounds[0], bounds[2]]
     yBoundary = [bounds[1], bounds[3]]
     stayInBoundary = StayInBoundary(xBoundary, yBoundary)
+
 ############
-    actionSpace = [(10, 0), (7, 7), (0, 10), (-7, 7), (-10, 0), (-7, -7), (0, -10), (7, -7)]
+    actionSpace = [(10, 0), (7, 7), (0, 10), (-7, 7), (-10, 0), (-7, -7), (0, -10), (7, -7), (0, 0)]
     preyPowerRatio = 3
     sheepActionSpace = list(map(tuple, np.array(actionSpace) * preyPowerRatio))
-    sheepActionSpace.append((0, 0))
     numActionSpace = len(sheepActionSpace)
 
-    actionSpaceStill = [(10, 0), (7, 7), (0, 10), (-7, 7), (-10, 0), (-7, -7), (0, -10), (7, -7)]
+    actionSpaceStill = [(10, 0), (7, 7), (0, 10), (-7, 7), (-10, 0), (-7, -7), (0, -10), (7, -7), (0, 0)]
     sheepActionSpaceStill = list(map(tuple, np.array(actionSpaceStill) * preyPowerRatio))
-    sheepActionSpaceStill.append((0, 0))
     numActionSpaceStill = len(sheepActionSpaceStill)
 
     regularizationFactor = 1e-4
@@ -140,7 +139,6 @@ def main():
     # modelController = ModelController(policy, gridSize, stopwatchEvent, stopwatchUnit, drawNewState, finishTime, softmaxBeita)
 
     actionSpace = list(it.product([0, 1, -1], repeat=2))
-
     trial = Trial(actionSpace, killzone, stopwatchEvent, drawNewState, checkTerminationOfTrial, checkEaten, attributionTrail, humanController)
     experiment = Experiment(trial, writer, experimentValues, initialWorld, updateWorld, drawImage, resultsPath)
     giveExperimentFeedback = GiveExperimentFeedback(screen, textColorTuple, screenWidth, screenHeight)
