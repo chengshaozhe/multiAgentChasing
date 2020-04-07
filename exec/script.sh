@@ -1,4 +1,4 @@
-for condition in test
+for condition in demoTrial
 do
     cd ~/Documents/multiAgentChasing/data/${condition}
 

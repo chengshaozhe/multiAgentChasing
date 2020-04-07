@@ -35,7 +35,7 @@ class HumanController():
         self.chooseGreedyAction = chooseGreedyAction
         self.actionDict = [{pg.K_UP: [0, -1], pg.K_DOWN: [0, 1], pg.K_LEFT: [-1, 0], pg.K_RIGHT: [1, 0]}, {pg.K_w: [0, -1], pg.K_s: [0, 1], pg.K_a: [-1, 0], pg.K_d: [1, 0]}]
 
-    def __call__(self, targetPositionA, targetPositionB, targetPositionC, targetPositionD, playerPositions, currentScore, currentStopwatch, trialIndex):
+    def __call__(self, targetPositionA, targetPositionB, targetPositionC, targetPositionD, playerPositions, currentScore, currentStopwatch, trialIndex, stateMemory):
         newStopwatch = currentStopwatch
         remainningTime = max(0, self.finishTime - currentStopwatch)
 
@@ -72,25 +72,17 @@ class HumanController():
         action3 = [0, 0]
         action4 = [0, 0]
 
-        wolfStates = (tuple(playerPositions[0]), tuple(playerPositions[1]))
-        wolfStatesReverse = (tuple(playerPositions[1]), tuple(playerPositions[0]))
-        try:
-            policyForCurrentStateDict1 = self.sheepPolicy[0][tuple(targetPositionA),wolfStates]
-        except KeyError as e:
-            policyForCurrentStateDict1 = self.sheepPolicy[0][tuple(targetPositionA),wolfStatesReverse]
-
-        try:
-            policyForCurrentStateDict2 = self.sheepPolicy[1][tuple(targetPositionB),wolfStates]
-        except KeyError as e:
-            policyForCurrentStateDict2 = self.sheepPolicy[1][tuple(targetPositionB),wolfStatesReverse]
-
-        actionMaxList1 = [action for action in policyForCurrentStateDict1.keys() if policyForCurrentStateDict1[action] == np.max(list(policyForCurrentStateDict1.values()))]
-
-        actionMaxList2 = [action for action in policyForCurrentStateDict2.keys() if policyForCurrentStateDict2[action] == np.max(list(policyForCurrentStateDict2.values()))]
-
         if currentStopwatch % 200 == 0:
-            action3 = random.choice(actionMaxList1)
-            action4 = random.choice(actionMaxList2)
+            def sortstate(state):
+                temp = state.copy()
+                temp.sort()
+                return temp
+            sheep1Memory = [[state[0], sortstate(state[2])] for state in stateMemory]
+            sheep2Memory = [[state[1], sortstate(state[2])] for state in stateMemory]
+            sheep1Memory = [(state[0], state[1][0], state[1][1]) for state in sheep1Memory]
+            sheep2Memory = [(state[0], state[1][0], state[1][1]) for state in sheep2Memory]
+            action3 = self.sheepPolicy(sheep1Memory)
+            action4 = self.sheepPolicy(sheep2Memory)
 
         for event in pg.event.get():
             if event.type == pg.QUIT:
@@ -103,10 +95,6 @@ class HumanController():
                 elif event.key in self.actionDict[1].keys():
                     action2 = self.actionDict[1][event.key]
 
-        # action3 = (0,0)
-            # action4 = (0,0)
-            # action3 = action[2]
-            # action4 = action[3]
             playerPositions = [self.stayInBoundary(np.add(playerPosition, action)) for playerPosition, action in zip(playerPositions, [action1, action2])]
 
             targetPositionA = self.stayInBoundary(np.add(targetPositionA, action3))
@@ -119,8 +107,8 @@ class HumanController():
         return targetPositionA, targetPositionB, targetPositionC, targetPositionD, playerPositions, [action1, action2], newStopwatch, screen
 
 
-def calculateSoftmaxProbability(probabilityList, beita):
-    newProbabilityList = list(np.divide(np.exp(np.multiply(beita, probabilityList)), np.sum(np.exp(np.multiply(beita, probabilityList)))))
+def calculateSoftmaxProbability(probabilityList, beta):
+    newProbabilityList = list(np.divide(np.exp(np.multiply(beta, probabilityList)), np.sum(np.exp(np.multiply(beta, probabilityList)))))
     return newProbabilityList
 
 
@@ -163,46 +151,3 @@ class ModelController():
             self.drawNewState(targetPositionA, targetPositionB, playerNextPosition, remainningTime, currentScore)
             pg.display.flip()
         return playerNextPosition, action, newStopwatch
-
-
-if __name__ == "__main__":
-    pg.init()
-    screenWidth = 720
-    screenHeight = 720
-    screen = pg.display.set_mode((screenWidth, screenHeight))
-    gridSize = 20
-    leaveEdgeSpace = 2
-    lineWidth = 2
-    backgroundColor = [188, 188, 0]
-    lineColor = [255, 255, 255]
-    targetColor = [255, 50, 50]
-    playerColor = [50, 50, 255]
-    targetRadius = 10
-    playerRadius = 10
-    targetPositionA = [5, 5]
-    targetPositionB = [15, 5]
-    playerPosition = [10, 15]
-    currentScore = 5
-    textColorTuple = (255, 50, 50)
-    stopwatchEvent = pg.USEREVENT + 1
-    stopwatchUnit = 10
-    pg.time.set_timer(stopwatchEvent, stopwatchUnit)
-    finishTime = 90000
-    currentStopwatch = 32000
-    softmaxBeita = 20
-
-    drawBackground = Visualization.DrawBackground(screen, gridSize, leaveEdgeSpace, backgroundColor, lineColor, lineWidth, textColorTuple)
-    drawNewState = Visualization.DrawNewState(screen, drawBackground, targetColor, playerColor, targetRadius, playerRadius)
-
-    getHumanAction = HumanController(gridSize, stopwatchEvent, stopwatchUnit, drawNewState, finishTime)
-    # newProbabilityList=calculateSoftmaxProbability([0.5,0.3,0.2],20)
-    # print(newProbabilityList)
-    import pickle
-    policy = pickle.load(open("SingleWolfTwoSheepsGrid15.pkl", "rb"))
-    getModelAction = ModelController(policy, gridSize, stopwatchEvent, stopwatchUnit, drawNewState, finishTime, softmaxBeita)
-
-    # [playerNextPosition,action,newStopwatch]=getHumanAction(targetPositionA, targetPositionB, playerPosition, currentScore, currentStopwatch)
-    [playerNextPosition, action, newStopwatch] = getModelAction(targetPositionA, targetPositionB, playerPosition, currentScore, currentStopwatch)
-    print(playerNextPosition, action, newStopwatch)
-
-    pg.quit()
