@@ -5,3 +5,5 @@ demo
 *.pyc
 results
 tbdata*
+*.zip
+*.pkl
