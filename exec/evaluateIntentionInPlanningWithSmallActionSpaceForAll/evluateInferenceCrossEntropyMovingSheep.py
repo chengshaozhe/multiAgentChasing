@@ -31,14 +31,15 @@ class MeasureCrossEntropy:
         self.priorIndex = priorIndex
 
     def __call__(self, trajectory):
+
         priors = [timeStep[self.priorIndex] for timeStep in trajectory]
         baseDistributions = [list(prior[self.baseId].values())
                 for prior in priors] 
         nonBaseDistributions = [list(prior[self.nonBaseId].values())
                 for prior in priors] 
-        crossEntropies = [stats.entropy(baseDistribution) + 0*stats.entropy(baseDistribution, nonBaseDistribution) 
+        crossEntropies = [stats.entropy(baseDistribution) + stats.entropy(baseDistribution, nonBaseDistribution) 
                 for baseDistribution, nonBaseDistribution in zip(baseDistributions, nonBaseDistributions)]
-        #print(priors[2])
+        print(priors[-1])
         return crossEntropies
 
 class Interpolate1dData:
@@ -55,7 +56,7 @@ class Interpolate1dData:
 def main():
     # manipulated variables
     manipulatedVariables = OrderedDict()
-    manipulatedVariables['perceptNoiseForAll'] = [1e-1, 4e1, 8e1, 1e3]
+    manipulatedVariables['numActionSpaceForAll'] = [2, 3, 5, 9]
     manipulatedVariables['maxRunningSteps'] = [100]
     levelNames = list(manipulatedVariables.keys())
     levelValues = list(manipulatedVariables.values())
@@ -66,21 +67,23 @@ def main():
 
     #trajectory dir
     DIRNAME = os.path.dirname(__file__)
-    trajectoryDirectory = os.path.join(DIRNAME, '..', '..', 'data', 'evaluateIntentionInPlanningWithNoisePerception',
-                                    'trajectories')
+    trajectoryDirectory = os.path.join(DIRNAME, '..', '..', 'data', 'evaluateIntentionInPlanningWithSmallActionSpaceForAll',
+                                    'oldTrajectories')
     if not os.path.exists(trajectoryDirectory):
         os.makedirs(trajectoryDirectory)
 
     softParameterInPlanning = 2.5
-    trajectoryFixedParameters = {'priorType': 'uniformPrior', 'sheepPolicy':'sampleNNPolicy', 'wolfPolicy':'NNPolicy',
+    perceptNoise = 1e-1
+    trajectoryFixedParameters = {'priorType': 'uniformPrior', 'sheepPolicy':'sampleNNPolicy', 'wolfPolicy':'NNPolicy', 'perceptNoise':perceptNoise,
             'policySoftParameter': softParameterInPlanning, 'chooseAction': 'sample'}
     trajectoryExtension = '.pickle'
     getTrajectorySavePath = GetSavePath(trajectoryDirectory, trajectoryExtension, trajectoryFixedParameters)
     
     # Compute Statistics on the Trajectories
     loadTrajectories = LoadTrajectories(getTrajectorySavePath, loadFromPickle)
-    loadTrajectoriesFromDf = lambda df: loadTrajectories(readParametersFromDf(df))
-    
+    #loadTrajectoriesFromDf = lambda df: [trajectory for trajectory in loadTrajectories(readParametersFromDf(df)) if len(trajectory) < readParametersFromDf(df)['maxRunningSteps']]
+    loadTrajectoriesFromDf = lambda df: loadTrajectories(readParametersFromDf(df)) 
+
     wolfImaginedWeId = [2, 3]
     priorIndexinTimestep = 3
     measureCrossEntropy = MeasureCrossEntropy(wolfImaginedWeId, priorIndexinTimestep)
@@ -93,22 +96,20 @@ def main():
     numColumns = 1
     numRows = len(manipulatedVariables['maxRunningSteps'])
     plotCounter = 1
-    
+    #__import__('ipdb').set_trace() 
     for maxRunningSteps, group in statisticsDf.groupby('maxRunningSteps'):
         group.index = group.index.droplevel('maxRunningSteps')
         axForDraw = fig.add_subplot(numRows, numColumns, plotCounter)
-        #if plotCounter % numColumns == 1:
         axForDraw.set_ylabel('Cross Entropy')
-        for perceptNoise, grp in group.groupby('perceptNoiseForAll'):
+        for numActionSpaceForAll, grp in group.groupby('numActionSpaceForAll'):
             df = pd.DataFrame(grp.values[0].tolist(), columns = list(range(maxRunningSteps)), index = ['mean','se']).T
             #print(grp)
             #print(df)
             #print(max(AA))
-            #print(AA)
-            df.plot.line(ax = axForDraw, label = 'Action Perception Noise = {}'.format(perceptNoise), y = 'mean', yerr = 'se', ylim = (0, 1), rot = 0)
+            df.plot.line(ax = axForDraw, label = 'Set Size of All\'s Action Space ={}'.format(numActionSpaceForAll), y = 'mean', yerr = 'se', ylim = (0, 12), rot = 0)
         plotCounter = plotCounter + 1
 
-    #plt.suptitle('Wolves Self Entropy')
+    #plt.suptitle('Wolves Cross Entropy')
     plt.legend(loc='best')
     plt.show()
 if __name__ == '__main__':

@@ -37,7 +37,7 @@ class TransitForNoPhysics():
 
 
 class IsTerminal():
-    def __init__(self, minDistance, getPredatorPos, getPreyPos):
+    def __init__(self, minDistance, getPreyPos, getPredatorPos):
         self.minDistance = minDistance
         self.getPredatorPos = getPredatorPos
         self.getPreyPos = getPreyPos

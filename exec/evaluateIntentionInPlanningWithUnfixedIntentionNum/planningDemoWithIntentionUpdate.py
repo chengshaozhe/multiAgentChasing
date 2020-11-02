@@ -15,47 +15,41 @@ import pathos.multiprocessing as mp
 import pygame as pg
 from pygame.color import THECOLORS
 
-from src.visualization.drawDemo import DrawBackground, DrawState, ChaseTrialWithTraj
+from src.visualization.drawDemo import DrawBackground, DrawCircleOutside, DrawState, ChaseTrialWithTraj, InterpolateState
 from src.chooseFromDistribution import sampleFromDistribution, maxFromDistribution
 from src.trajectoriesSaveLoad import GetSavePath, readParametersFromDf, LoadTrajectories, SaveAllTrajectories, \
     GenerateAllSampleIndexSavePaths, saveToPickle, loadFromPickle
+from src.MDPChasing.envNoPhysics import TransitForNoPhysics, StayInBoundaryByReflectVelocity
+from src.MDPChasing.policies import SoftPolicy
 
-
-class MeasureIntentionArcheivement:
-    def __init__(self, possibleIntentionIds, imaginedWeIds, stateIndex, posIndex, minDistance, judgeSuccessCatchOrEscape):
-        self.possibleIntentionIds = possibleIntentionIds
-        self.imaginedWeIds = imaginedWeIds
-        self.stateIndex = stateIndex
-        self.posIndex = posIndex
-        self.minDistance = minDistance
-        self.judgeSuccessCatchOrEscape = judgeSuccessCatchOrEscape
-
-    def __call__(self, trajectory):
-        lastState = np.array(trajectory[-1][self.stateIndex])
-        minL2DistancesBetweenImageinedWeAndIntention = [min([np.linalg.norm(lastState[subjectIndividualId][self.posIndex] - lastState[intentionIndividualId][self.posIndex]) 
-            for subjectIndividualId, intentionIndividualId in it.product(self.imaginedWeIds, intentionId)]) for intentionId in self.possibleIntentionIds]
-        areDistancesInMin = [distance <= self.minDistance for distance in minL2DistancesBetweenImageinedWeAndIntention]
-        successArcheivement = [self.judgeSuccessCatchOrEscape(booleanInMinDistance) for booleanInMinDistance in areDistancesInMin]
-        return successArcheivement
+def updateColorSpace(colorSpace, posterior, intentionSpace, imaginedWeIds):
+    intentionProbabilities = np.mean([[max(0, 1 * (posterior[individualId][intention] - 1/len(intentionSpace))) 
+        for intention in intentionSpace] for individualId in imaginedWeIds], axis = 0)
+    colorRepresentProbability = np.array([np.array([0, 170, 0]) * probability for probability in intentionProbabilities]) + np.array(
+            [colorSpace[intention[0]] for intention in intentionSpace])
+    updatedColorSpace = np.array(colorSpace).copy()
+    updatedColorSpace[[intention[0] for intention in intentionSpace]] = colorRepresentProbability
+    return updatedColorSpace
 
 def main():
     DIRNAME = os.path.dirname(__file__)
-    trajectoryDirectory = os.path.join(DIRNAME, '..', '..', 'data', 'evaluateIntentionInPlanningWithIntentionUpdate',
+    trajectoryDirectory = os.path.join(DIRNAME, '..', '..', 'data', 'evaluateIntentionInPlanningWithNumIntentions',
                                     'trajectories')
     if not os.path.exists(trajectoryDirectory):
         os.makedirs(trajectoryDirectory)
     
     maxRunningSteps = 100
     softParameterInPlanning = 2.5
-    trajectoryFixedParameters = {'priorType': 'uniformPrior', 'sheepPolicy':'NNPolicy', 'wolfPolicy':'NNPolicy',
+    perceptNoise = 1e-1
+    trajectoryFixedParameters = {'priorType': 'uniformPrior', 'sheepPolicy':'sampleNNPolicy', 'wolfPolicy':'NNPolicy', 'perceptNoise': perceptNoise,
             'maxRunningSteps': maxRunningSteps, 'policySoftParameter': softParameterInPlanning, 'chooseAction': 'sample'}
     trajectoryExtension = '.pickle'
     getTrajectorySavePath = GetSavePath(trajectoryDirectory, trajectoryExtension, trajectoryFixedParameters)
 
     # Compute Statistics on the Trajectories
     loadTrajectories = LoadTrajectories(getTrajectorySavePath, loadFromPickle)
-    trajectoryParameters = {'updateIntention': 'inferImaginedWe'}
-    #trajectoryParameters = {'updateIntention': 'False'}
+    numIntentions = 8
+    trajectoryParameters = {'numIntentions': numIntentions}
     trajectories = loadTrajectories(trajectoryParameters) 
     # generate demo image
     screenWidth = 600
@@ -68,11 +62,11 @@ def main():
     lineWidth = 4
     drawBackground = DrawBackground(screen, screenColor, xBoundary, yBoundary, lineColor, lineWidth)
     
-    FPS = 20
-    circleColorSpace = [THECOLORS['red'], THECOLORS['green'], THECOLORS['blue'], THECOLORS['blue']]
+    FPS = 40
+    circleColorSpace = [[100, 100, 100]]*numIntentions + [[255, 255, 255]] * 2
     circleSize = 10
     positionIndex = [0, 1]
-    agentIdsToDraw = list(range(4))
+    agentIdsToDraw = list(range(numIntentions + 2))
     saveImage = True
     imageSavePath = os.path.join(trajectoryDirectory, 'picMovingSheep')
     if not os.path.exists(imageSavePath):
@@ -81,14 +75,36 @@ def main():
     saveImageDir = os.path.join(os.path.join(imageSavePath, imageFolderName))
     if not os.path.exists(saveImageDir):
         os.makedirs(saveImageDir)
-    updateColorSpaceByPosterior = lambda originalColorSpace, posterior : originalColorSpace
-    drawState = DrawState(FPS, screen, circleColorSpace, circleSize, agentIdsToDraw, positionIndex, saveImage, saveImageDir, drawBackground, updateColorSpaceByPosterior)
+    intentionSpace = list(it.product(range(numIntentions)))
+    imaginedWeIdsForInferenceSubject = [numIntentions, numIntentions + 1]
+    softParameter = 0.1
+    softFunction = SoftPolicy(softParameter)
+    updateColorSpaceByPosterior = lambda colorSpace, posterior : updateColorSpace(
+            colorSpace, [softFunction(individualPosterior) for individualPosterior in posterior], intentionSpace, imaginedWeIdsForInferenceSubject)
+    
+    #updateColorSpaceByPosterior = lambda originalColorSpace, posterior : originalColorSpace
+    outsideCircleAgentIds = imaginedWeIdsForInferenceSubject
+    outsideCircleColor = np.array([[255, 0, 0]] * 2) 
+    outsideCircleSize = 15 
+    drawCircleOutside = DrawCircleOutside(screen, outsideCircleAgentIds, positionIndex, outsideCircleColor, outsideCircleSize)
+    drawState = DrawState(FPS, screen, circleColorSpace, circleSize, agentIdsToDraw, positionIndex, 
+            saveImage, saveImageDir, drawBackground, updateColorSpaceByPosterior, drawCircleOutside)
+    
+   # MDP Env
+    xBoundary = [0,600]
+    yBoundary = [0,600]
+    stayInBoundaryByReflectVelocity = StayInBoundaryByReflectVelocity(xBoundary, yBoundary)
+    transit = TransitForNoPhysics(stayInBoundaryByReflectVelocity)
+    numFramesToInterpolate = 3
+    interpolateState = InterpolateState(numFramesToInterpolate, transit)
     
     stateIndexInTimeStep = 0
-    chaseTrial = ChaseTrialWithTraj(stateIndexInTimeStep, drawState)
+    actionIndexInTimeStep = 1
+    posteriorIndexInTimeStep = 3
+    chaseTrial = ChaseTrialWithTraj(stateIndexInTimeStep, drawState, interpolateState, actionIndexInTimeStep, posteriorIndexInTimeStep)
    
     print(len(trajectories))
-    [chaseTrial(trajectory) for trajectory in np.array(trajectories)[0:10]]
-
+    [chaseTrial(trajectory) for trajectory in np.array(trajectories)[[24]]]
+    #[24 for 8intentions]
 if __name__ == '__main__':
     main()

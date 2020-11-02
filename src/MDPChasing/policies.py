@@ -89,9 +89,10 @@ class ResetPolicy:
         self.returnAttributes = returnAttributes
     
     def __call__(self):
-        attributesForGet = self.returnAttributes.copy()
-        returnAttributeValues = list(zip(*[list(zip(*[getattr(individualPolicy, attribute).copy() for individualPolicy in self.policyObjects])) 
-            for attribute in attributesForGet]))
+        returnAttributeValues = None
+        if self.returnAttributes:
+            returnAttributeValues = list(zip(*[list(zip(*[getattr(individualPolicy, attribute).copy() for individualPolicy in self.policyObjects])) 
+                for attribute in self.returnAttributes]))
         [[setattr(policy, attribute, value) for attribute, value in zip(list(attributeValue.keys()), copy.deepcopy(list(attributeValue.values())))] 
                 for policy, attributeValue in zip(self.policyObjects, self.attributeValues)]
         return returnAttributeValues

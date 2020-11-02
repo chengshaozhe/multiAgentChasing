@@ -30,9 +30,10 @@ class SampleTrajectory:
 
         if self.resetPolicy:
             policyAttributes = self.resetPolicy()
-            trajectoryWithPolicyAttrVals = [tuple(list(stateActionPair) + list(policyAttribute)) 
-                    for stateActionPair, policyAttribute in zip(trajectory, policyAttributes)]
-            trajectory = trajectoryWithPolicyAttrVals.copy()
+            if policyAttributes:
+                trajectoryWithPolicyAttrVals = [tuple(list(stateActionPair) + list(policyAttribute)) 
+                        for stateActionPair, policyAttribute in zip(trajectory, policyAttributes)]
+                trajectory = trajectoryWithPolicyAttrVals.copy()
         return trajectory
 
 

@@ -94,8 +94,9 @@ def main():
     lastState = None
 
     sheepImagindWeIntentionPrior = {(2, 3): 1}
-    wolfImaginedWeIntentionPrior = {(0, ):0.5, (1,): 0.5}
-    imaginedWeIntentionPriors = [sheepImagindWeIntentionPrior, sheepImagindWeIntentionPrior, wolfImaginedWeIntentionPrior, wolfImaginedWeIntentionPrior]
+    wolf1ImaginedWeIntentionPrior = {(0, ):1, (1,): 0}
+    wolf2ImaginedWeIntentionPrior = {(0, ):0, (1,): 1}
+    imaginedWeIntentionPriors = [sheepImagindWeIntentionPrior, sheepImagindWeIntentionPrior, wolf1ImaginedWeIntentionPrior, wolf2ImaginedWeIntentionPrior]
     
     # Inference of Imagined We
     noInferIntention = lambda intentionPrior, lastState, state: intentionPrior
@@ -213,7 +214,7 @@ def main():
     getTrajectorySavePath = GetSavePath(trajectoryDirectory, trajectoryExtension, trajectoryFixedParameters)
     saveTrajectoryByParameters = lambda trajectories, parameters: saveToPickle(trajectories, getTrajectorySavePath(parameters))
    
-    numTrajectories = 300
+    numTrajectories = 50
     sampleTrajectoriesForConditions = SampleTrjactoriesForConditions(numTrajectories, composeIndividualPoliciesByEvaParameters,
             composeResetPolicy, composeSampleTrajectory, saveTrajectoryByParameters)
     #[sampleTrajectoriesForConditions(para) for para in parametersAllCondtion]
@@ -226,25 +227,31 @@ def main():
     wolfImaginedWeId = [2, 3]
     stateIndexInTimestep = 0
     judgeSuccessCatchOrEscape = lambda booleanSign: int(booleanSign)
-    measureIntentionArcheivement = MeasureIntentionArcheivement(possibleIntentionIds, wolfImaginedWeId, stateIndexInTimestep, posIndexInState, killzoneRadius, judgeSuccessCatchOrEscape)
-    computeStatistics = ComputeStatistics(loadTrajectoriesFromDf, measureIntentionArcheivement)
+    #measureIntentionArcheivement = MeasureIntentionArcheivement(possibleIntentionIds, wolfImaginedWeId, stateIndexInTimestep, posIndexInState, killzoneRadius, judgeSuccessCatchOrEscape)
+    measurementFunction = lambda df: lambda trajectory: int(len(trajectory) < maxRunningSteps) - 1 / maxRunningSteps * len(trajectory)
+    computeStatistics = ComputeStatistics(loadTrajectoriesFromDf, measurementFunction)
     statisticsDf = toSplitFrame.groupby(levelNames).apply(computeStatistics)
     
     fig = plt.figure()
     numColumns = len(manipulatedVariables['updateIntention'])
     numRows = 1
     plotCounter = 1
+    axForDraw = fig.add_subplot(numRows, numColumns, plotCounter)
+ 
+    statisticsDf.index = ['No Infer Imagined We', 'Infer Imagined We']
+    ax = statisticsDf.plot.bar(y = 'mean', yerr = 'se', ylim = (-0.6, 0.6), rot = 0)
 
-    for wolfUpdateIntention, grp in statisticsDf.groupby('updateIntention'):
-        axForDraw = fig.add_subplot(numRows, numColumns, plotCounter)
-        axForDraw.set_title('wolf Update Intention = {}'.format(wolfUpdateIntention))
-        df = pd.DataFrame(grp.values[0].tolist(), columns = possiblePreyIds, index = ['mean','se']).T
+    ax.set_ylabel('Accumulated Reward')
+    #for wolfUpdateIntention, grp in statisticsDf.groupby('updateIntention'):
+    #    axForDraw = fig.add_subplot(numRows, numColumns, plotCounter)
+        #axForDraw.set_title('wolf Update Intention = {}'.format(wolfUpdateIntention))
+        #df = pd.DataFrame(grp.values[0].tolist(), columns = possiblePreyIds, index = ['mean','se']).T
         #df = grp
         #__import__('ipdb').set_trace()
-        df.plot.bar(ax = axForDraw, y = 'mean', yerr = 'se', ylim = (0, 1))
-        plotCounter = plotCounter + 1
+    #    df.plot.bar(ax = axForDraw, y = 'mean', yerr = 'se', ylim = (-0.5, 0.5))
+    #    plotCounter = plotCounter + 1
 
-    plt.suptitle('Wolves Intention Archeivement Moving Sheeps')
+    #plt.suptitle('Wolves Intention Archeivement Moving Sheeps')
     plt.legend(loc='best')
     plt.show()
 if __name__ == '__main__':
